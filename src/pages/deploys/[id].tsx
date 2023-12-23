@@ -1,121 +1,136 @@
 import { useRouter } from "next/router";
-import { api } from "~/utils/api";
+import { RouterOutputs, api } from "~/utils/api";
 import Prism from "prismjs";
 import "prismjs/components/prism-yaml";
 import { useEffect } from "react";
-import { Copy, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { CopyToClipboard } from "~/components/CopyToClipboard";
 
-const docompose = `version: "3.3"
+function serviceTemplate({
+  image,
+  name,
+  exposedConfig,
+  environment,
+  dependsOn,
+  networks,
+  volumes,
+}: NonNullable<RouterOutputs["deploy"]["get"]>["services"][number]) {
+  return `
+  ${name}:
+    image: ${image.repo}:${image.name}${
+      image.version ? "-" + image.version : ""
+    }
+    restart: always
+    networks:${networks.map(
+      (n) => `
+      - ${n}`,
+    )}${
+      !dependsOn
+        ? ""
+        : `
+    depends_on:${dependsOn.reduce(
+      (p, d) => `${p}
+      - ${d}`,
+      "",
+    )}`
+    }${
+      !volumes
+        ? ""
+        : `
+    volumes:${volumes.reduce(
+      (pr, volume) => `${pr}
+      - ${volume}`,
+      "",
+    )}`
+    }${
+      !environment
+        ? ""
+        : `
+    environment:${environment.reduce(
+      (prev, k) => `${prev}
+      ${k.key}: ${k.value}`,
+      "",
+    )}`
+    }${
+      !exposedConfig
+        ? ""
+        : `
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+
+      # # http access
+      - traefik.http.routers.${name}-router.rule=${exposedConfig.rule}
+      - traefik.http.routers.${name}-router.entrypoints=web
+
+      # # https access
+
+      - traefik.http.routers.${name}-router-websecure.rule=${exposedConfig.rule}
+      - traefik.http.routers.${name}-router-websecure.entrypoints=websecure
+      - traefik.http.routers.${name}-router-websecure.tls=true
+
+      # # redirect http to https
+
+      - traefik.http.middlewares.${name}-router-redirect-to-websecure.redirectscheme.scheme=https
+      - traefik.http.routers.${name}-router.middlewares=${name}-router-redirect-to-websecure
+${
+  !exposedConfig.certificate
+    ? ""
+    : `
+      # # certResolver pra quando precisar gerar certificado por aqui:
+      # # Ver traefik.yml para ver a configuracao do challenge:
+      
+      - traefik.http.routers.${name}-router-websecure.tls.certResolver=${
+        exposedConfig.certificate.name
+      }
+      
+      # # Domains that need certificate:
+      - traefik.http.routers.${name}-router-websecure.tls.domains[0].main=${
+        exposedConfig.certificate.forDomain
+      }
+      - traefik.http.routers.${name}-router-websecure.tls.domains[0].sans=${exposedConfig.certificate.forSubDomains.join(
+        ",",
+      )}`
+}`
+    }
+`;
+}
+
+function generateDockerComposeTemplate(deploy: RouterOutputs["deploy"]["get"]) {
+  if (!deploy) return "";
+
+  let allVolumes = deploy.services
+    .reduce(
+      (prev, s) => (s.volumes ? [...prev, ...s.volumes] : prev),
+      [] as string[],
+    )
+    .map((v) => v.substring(0, v.indexOf(":")));
+
+  allVolumes = allVolumes.filter((v, i) => allVolumes.indexOf(v) === i);
+
+  return `version: "3.3"
 
 networks:
-  proxy:
-    external: true
   internal:
     external: false
+  # traefik network:
+  proxy:
+    external: true
 
-services:
-  site-struct-front:
-    image: structej/projetos:site-struct-front-1.5
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=proxy
-
-      # # http access
-      - traefik.http.routers.site-struct-front-router.rule=Host(\`structej.com\`, \`www.structej.com\`, \`struct.unb.br\`, \`www.struct.unb.br\`) && !PathPrefix(\`/api\`) && !PathPrefix(\`/rails\`)
-      - traefik.http.routers.site-struct-front-router.entrypoints=web
-
-      # # https access
-
-      - traefik.http.routers.site-struct-front-router-websecure.rule=Host(\`structej.com\`, \`www.structej.com\`, \`struct.unb.br\`, \`www.struct.unb.br\`) && !PathPrefix(\`/api\`) && !PathPrefix(\`/rails\`)
-      - traefik.http.routers.site-struct-front-router-websecure.entrypoints=websecure
-      - traefik.http.routers.site-struct-front-router-websecure.tls=true
-
-      # # redirect http to https
-
-      - traefik.http.middlewares.site-struct-front-router-redirect-to-websecure.redirectscheme.scheme=https
-      - traefik.http.routers.site-struct-front-router.middlewares=site-struct-front-router-redirect-to-websecure
-
-      # # certResolver pra quando precisar gerar certificado por aqui:
-      # # Ver traefik.yml para ver a configuracao do challenge:
-
-      - traefik.http.routers.site-struct-front-router-websecure.tls.certResolver=struct-certresolver
-
-      # # Domains that need certificate:
-      - traefik.http.routers.site-struct-front-router-websecure.tls.domains[0].main=struct.unb.br
-      - traefik.http.routers.site-struct-front-router-websecure.tls.domains[0].sans=www.struct.unb.br
-
-    restart: always
-    networks:
-      - proxy
-
-  site-struct-api:
-    image: structej/projetos:site-struct-api-1.2
-    environment:
-      - STRUCT_DATABASE=db_name
-      - STRUCT_DATABASE_USERNAME=db_user
-      - STRUCT_DATABASE_PASSWORD=db_pwd
-      - MAILJET_API_KEY=trasagdadvadgadgd
-      - MAILJET_SECRET_KEY=trasagdadvadgadgd
-      - SECRET_KEY_BASE=trasagdadvadgadgdtrasagdadvadgadgdtrasagdadvadgadgdtrasagdadvadgadgdtrasagdadvadgadgdtrasagdadvadgadgdtrasagdadvadgadgdtrasagdadvadgadgd
-      - CONTACT_EMAIL=ava@test.com
-
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=proxy
-
-      # # http access
-      - traefik.http.routers.site-struct-api-router.rule=Host(\`structej.com\`) && ( PathPrefix(\`/rails\`) || PathPrefix(\`/api\`) )
-      - traefik.http.routers.site-struct-api-router.entrypoints=web
-
-      # # https access
-
-      - traefik.http.routers.site-struct-api-router-websecure.rule=Host(\`structej.com\`) && ( PathPrefix(\`/rails\`) || PathPrefix(\`/api\`) )
-      - traefik.http.routers.site-struct-api-router-websecure.entrypoints=websecure
-      - traefik.http.routers.site-struct-api-router-websecure.tls=true
-
-      # # Specify to container port
-      - traefik.http.routers.site-struct-api-router-websecure.service=site-struct-api-router-service
-      - traefik.http.routers.site-struct-api-router.service=site-struct-api-router-service
-      - traefik.http.services.site-struct-api-router-service.loadbalancer.server.port=3000
-
-      # # redirect http to https
-
-      - traefik.http.middlewares.site-struct-api-router-redirect-to-websecure.redirectscheme.scheme=https
-      - traefik.http.routers.site-struct-api-router.middlewares=site-struct-api-router-redirect-to-websecure
-
-      # # certResolver pra quando precisar gerar certificado por aqui:
-      # # Ver traefik.yml para ver a configuracao do challenge:
-
-    restart: always
-    volumes:
-      - project_data:/app/storage/
-    networks:
-      - proxy
-      - internal
-    depends_on:
-      - db
-    links:
-      - db
-
-  db:
-    image: postgres:10.4-alpine
-    restart: always
-    environment:
-      POSTGRES_DB: db_name
-      POSTGRES_USER: db_user
-      POSTGRES_PASSWORD: db_pwd
-      PGDATA: /var/lib/postgresql/data/
-    networks:
-      - internal
-    volumes:
-      - pg_data:/var/lib/postgresql/data/
-
-volumes:
-  pg_data:
-  project_data:
-
+services:${deploy.services.map((s) => serviceTemplate(s)).join("")}
+${
+  !allVolumes.length
+    ? ""
+    : `
+volumes:${allVolumes.reduce(
+        (pr, volume) => `${pr}
+  ${volume}:`,
+        "",
+      )}
+`
+}
 `;
+}
 
 export default function DeployPage() {
   const router = useRouter();
@@ -131,7 +146,9 @@ export default function DeployPage() {
       await Prism.highlightAll(); // <--- prepare Prism
     };
     highlight(); // <--- call the async function
-  }, [deploy, docompose]);
+  }, [deploy]);
+
+  const dockerCompose = generateDockerComposeTemplate(deploy);
 
   return (
     <section className="min-h-screen flex-col bg-zinc-900 p-8 text-white sm:p-16">
@@ -146,24 +163,26 @@ export default function DeployPage() {
                 {deploy.services.map((service) => (
                   <li>
                     <h2 className="text-xl">{service.name}</h2>
-                    <div>{service.template}</div>
+                    {/* <div>{service.template}</div> */}
                   </li>
                 ))}
               </ul>
             </form>
           </details>
-          <pre className="language-yaml relative max-h-[80vh] rounded">
-            <span className="absolute right-0 top-0 m-2 flex gap-2">
-              <CopyToClipboard
-                className="fixed -translate-x-full rounded bg-white/10 hover:bg-white/20"
-                textToCopy={docompose}
-              />
-              <button className="fixed -ml-2 h-10 w-10 -translate-x-[200%] rounded bg-white/10 p-2 text-yellow-400 hover:bg-white/20">
+          <div className="relative">
+            <span className="absolute right-0 top-0 z-10 flex gap-3 p-3">
+              <button className="h-10 w-10 rounded bg-yellow-400/10 p-2 text-yellow-400 hover:bg-yellow-400/20">
                 <Pencil />
               </button>
+              <CopyToClipboard
+                className="rounded bg-white/10 hover:bg-white/20"
+                textToCopy={dockerCompose}
+              />
             </span>
-            <code>{docompose}</code>
-          </pre>
+            <pre className="language-yaml relative max-h-[80vh] rounded">
+              <code>{dockerCompose}</code>
+            </pre>
+          </div>
         </>
       ) : (
         "Carregando..."
