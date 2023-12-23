@@ -4,7 +4,9 @@ import Link from "next/link";
 import { api } from "~/utils/api";
 
 export default function DeploysPage() {
-  const { data: deploys } = api.deploy.getAll.useQuery();
+  const { data: deploys } = api.deploy.getAll.useQuery(undefined, {
+    networkMode: "always",
+  });
 
   return (
     <>
