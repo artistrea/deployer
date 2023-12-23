@@ -6,31 +6,41 @@ import { useEffect } from "react";
 import { Pencil } from "lucide-react";
 import { CopyToClipboard } from "~/components/CopyToClipboard";
 
-function serviceTemplate({
-  image,
-  name,
-  exposedConfig,
-  environment,
-  dependsOn,
-  networks,
-  volumes,
-}: NonNullable<RouterOutputs["deploy"]["get"]>["services"][number]) {
+type Deploy = NonNullable<RouterOutputs["deploy"]["get"]>;
+
+function serviceTemplate(
+  {
+    dockerImage,
+    name,
+    exposedConfig,
+    environmentVariables,
+    dependsOn,
+    hasInternalNetwork,
+    volumes,
+  }: Deploy["services"][number],
+  deploy: Deploy,
+) {
   return `
   ${name}:
-    image: ${image.repo}:${image.name}${
-      image.version ? "-" + image.version : ""
-    }
+    image: ${dockerImage}
     restart: always
-    networks:${networks.map(
-      (n) => `
-      - ${n}`,
-    )}${
+    networks:${
+      !hasInternalNetwork
+        ? ""
+        : `
+      - internal`
+    }${
+      !exposedConfig
+        ? ""
+        : `
+      - proxy`
+    }${
       !dependsOn
         ? ""
         : `
     depends_on:${dependsOn.reduce(
       (p, d) => `${p}
-      - ${d}`,
+      - ${deploy.services.find((s) => s.id === d.dependsOnId)?.name}`,
       "",
     )}`
     }${
@@ -39,14 +49,14 @@ function serviceTemplate({
         : `
     volumes:${volumes.reduce(
       (pr, volume) => `${pr}
-      - ${volume}`,
+      - ${volume.value}`,
       "",
     )}`
     }${
-      !environment
+      !environmentVariables
         ? ""
         : `
-    environment:${environment.reduce(
+    environment:${environmentVariables.reduce(
       (prev, k) => `${prev}
       ${k.key}: ${k.value}`,
       "",
@@ -88,9 +98,9 @@ ${
       - traefik.http.routers.${name}-router-websecure.tls.domains[0].main=${
         exposedConfig.certificate.forDomain
       }
-      - traefik.http.routers.${name}-router-websecure.tls.domains[0].sans=${exposedConfig.certificate.forSubDomains.join(
-        ",",
-      )}`
+      - traefik.http.routers.${name}-router-websecure.tls.domains[0].sans=${exposedConfig.certificate.forSubDomains
+        .map((sbd) => sbd.value)
+        .join(",")}`
 }`
     }
 `;
@@ -101,7 +111,8 @@ function generateDockerComposeTemplate(deploy: RouterOutputs["deploy"]["get"]) {
 
   let allVolumes = deploy.services
     .reduce(
-      (prev, s) => (s.volumes ? [...prev, ...s.volumes] : prev),
+      (prev, s) =>
+        s.volumes ? [...prev, ...s.volumes.map((v) => v.value)] : prev,
       [] as string[],
     )
     .map((v) => v.substring(0, v.indexOf(":")));
@@ -117,7 +128,7 @@ networks:
   proxy:
     external: true
 
-services:${deploy.services.map((s) => serviceTemplate(s)).join("")}
+services:${deploy.services.map((s) => serviceTemplate(s, deploy)).join("")}
 ${
   !allVolumes.length
     ? ""
