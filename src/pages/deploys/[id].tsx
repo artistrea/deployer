@@ -167,19 +167,6 @@ export default function DeployPage() {
         <>
           <h1 className="text-3xl">{deploy.name}</h1>
           <p className="text-sm text-white/70">{deploy.description}</p>
-          <details>
-            <summary>Config</summary>
-            <form className="p-8">
-              <ul>
-                {deploy.services.map((service) => (
-                  <li>
-                    <h2 className="text-xl">{service.name}</h2>
-                    {/* <div>{service.template}</div> */}
-                  </li>
-                ))}
-              </ul>
-            </form>
-          </details>
           <div className="relative">
             <span className="absolute right-0 top-0 z-10 flex gap-3 p-3">
               <button className="h-10 w-10 rounded bg-yellow-400/10 p-2 text-yellow-400 hover:bg-yellow-400/20">

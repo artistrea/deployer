@@ -42,13 +42,13 @@ export default function DeploysPage() {
                 <div>{deploy.name}</div>
                 <ul className="mt-auto flex flex-wrap gap-2">
                   {deploy.domains.map((domain) => (
-                    <li key={domain} className="flex text-xs">
+                    <li key={domain.value} className="flex text-xs">
                       <Link
                         className="flex max-w-xs flex-col gap-4 rounded-xl p-2 shadow shadow-black/20 hover:shadow-black/80"
-                        href={`https://${domain}`}
+                        href={`https://${domain.value}`}
                         target="_blank"
                       >
-                        {domain}
+                        {domain.value}
                       </Link>
                     </li>
                   ))}
