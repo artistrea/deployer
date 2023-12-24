@@ -49,7 +49,7 @@ async function seed() {
       {
         deployId,
         name: "db",
-        dockerImage: "structej/projetos/site-struct-api-1.3",
+        dockerImage: "postgres:10.4-alpine",
         hasInternalNetwork: true,
       },
     ])
