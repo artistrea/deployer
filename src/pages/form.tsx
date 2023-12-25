@@ -471,7 +471,6 @@ export default function FormPage() {
                 >
                   <Plus size={20} />
                 </button>
-                <ErrorMessage message={errors.services?.root?.message} />
               </div>
             </div>
           </div>
@@ -575,10 +574,13 @@ export default function FormPage() {
           >
             <Plus size={20} />
           </button>
-          <ErrorMessage message={errors.services?.message} />
         </div>
+        <ErrorMessage message={errors.services?.root?.message} />
 
-        <button className="relative ml-auto mt-auto flex items-center gap-4 rounded bg-blue-400/10 px-14 py-4 text-xl text-blue-400 hover:bg-blue-400/20">
+        <button
+          type="submit"
+          className="relative ml-auto mt-auto flex items-center gap-4 rounded bg-blue-400/10 px-14 py-4 text-xl text-blue-400 hover:bg-blue-400/20"
+        >
           Criar
           <Rocket size={20} className="absolute right-9 top-1/2" />
         </button>
