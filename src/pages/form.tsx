@@ -1,7 +1,8 @@
 import { useForm, SubmitHandler, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Minus, Plus } from "lucide-react";
+import { Minus, PackagePlus, Plus, Rocket, Save } from "lucide-react";
+import { useMemo } from "react";
 
 const schema = z.object({
   deploy: z.object({
@@ -74,151 +75,234 @@ export default function FormPage() {
     control, // control props comes from useForm (optional: if you are using FormContext)
     name: "services", // unique name for your Field Array
   });
+  type ServiceProps = {
+    index: number;
+    removeServices: typeof removeServices;
+    register: typeof register;
+    watch: typeof watch;
+    errors: typeof errors;
+  };
 
-  function Service({ index }: { index: number }) {
-    const {
-      fields: fieldsEnvironment,
-      append: appendEnvironment,
-      remove: removeEnvironment,
-    } = useFieldArray({
-      control, // control props comes from useForm (optional: if you are using FormContext)
-      name: `services.${index}.environmentVariables`, // unique name for your Field Array
-    });
+  // component Service made inside so that types may be inferred from current component
+  // useMemo so that rerenders don't remove focus from current input
+  // rerender may happen while changing input because of `watch` and `errors`
+  const Service = useMemo(
+    () =>
+      ({ index, register, removeServices, watch, errors }: ServiceProps) => {
+        const {
+          fields: fieldsEnvironment,
+          append: appendEnvironment,
+          remove: removeEnvironment,
+        } = useFieldArray({
+          control, // control props comes from useForm (optional: if you are using FormContext)
+          name: `services.${index}.environmentVariables`, // unique name for your Field Array
+        });
 
-    return (
-      <div className="flex w-full gap-1">
-        <button
-          className="rounded bg-red-400/10 p-1 text-red-400"
-          type="button"
-          onClick={() => removeServices(index)}
-        >
-          <Minus size={20} />
-        </button>
-        <div className="flex w-full flex-col gap-1">
-          <input
-            className="bg-zinc-800 p-2"
-            placeholder="Nome do serviço"
-            {...register(`services.${index}.name`)}
-          />
-          <input
-            className="bg-zinc-800 p-2"
-            list="common-service-names"
-            placeholder="Imagem docker do serviço"
-            {...register(`services.${index}.dockerImage`)}
-          />
-          <span className="pl-4">
-            <label htmlFor={`services.${index}.hasInternalNetwork`}>
-              Se conecta a outro serviço interno?
-            </label>
-            <input
-              id={`services.${index}.hasInternalNetwork`}
-              type="checkbox"
-              className="mx-2 inline bg-zinc-800 p-2"
-              placeholder="Nome do serviço"
-              {...register(`services.${index}.hasInternalNetwork`)}
-            />
-            {watch(`services.${index}.hasInternalNetwork`) && (
-              <input
-                className="w-full bg-zinc-800 p-2 disabled:opacity-60"
-                placeholder="Ele que depende do outro? De qual?"
-                {...register(`services.${index}.dependsOn`)}
-              />
-            )}
-          </span>
-          <span className="pl-4">
-            <label htmlFor={`services.${index}.hasExposedConfig`}>
-              Expor serviço para a internet?
-            </label>
-            <input
-              id={`services.${index}.hasExposedConfig`}
-              type="checkbox"
-              className="mx-2 inline bg-zinc-800 p-2"
-              placeholder="Nome do serviço"
-              {...register(`services.${index}.hasExposedConfig`)}
-            />
-            {/* 
-            port: z.number().optional(),
-            certificate: z
-              .object({
-                name: z.string().min(1).max(32),
-                forDomain: z.string().min(1).max(64),
-                forSubDomains: z.array(
-                  z.object({
-                    value: z.string().min(1).max(64),
-                  }),
-                ),
-            hasCertificate: z.boolean(),
-            }) */}
-            {watch(`services.${index}.hasExposedConfig`) && (
-              <div className="flex flex-col gap-1">
-                <input
-                  className="w-full bg-zinc-800 p-2 disabled:opacity-60"
-                  placeholder="Regra. e.g. Host(`www.structej.com`) *"
-                  {...register(`services.${index}.exposedConfig.rule`)}
-                />
-                <input
-                  className="bg-zinc-800 p-2 disabled:opacity-60"
-                  placeholder="Especificar port"
-                  type="number"
-                  {...register(`services.${index}.exposedConfig.port`, {
-                    setValueAs(value) {
-                      if (value === "") return undefined;
-                      return parseInt(value, 10);
-                    },
-                  })}
-                />
-                {errors.services?.[index]?.exposedConfig?.port?.message}
-              </div>
-            )}
-          </span>
-          <div className="flex flex-col gap-1 pl-4">
-            <p>Variáveis de Ambiente</p>
-            {fieldsEnvironment.map((f, i) => (
-              <div className="flex w-full gap-1" key={f.id}>
-                <button
-                  className="rounded bg-red-400/10 p-1 text-red-400"
-                  type="button"
-                  onClick={() => removeEnvironment(i)}
-                >
-                  <Minus size={20} />
-                </button>
+        const {
+          fields: fieldsCertificateSubDomains,
+          append: appendCertificateSubDomains,
+          remove: removeCertificateSubDomains,
+        } = useFieldArray({
+          control, // control props comes from useForm (optional: if you are using FormContext)
+          name: `services.${index}.exposedConfig.certificate.forSubDomains`, // unique name for your Field Array
+        });
 
-                <input
-                  className="bg-zinc-800 p-2"
-                  placeholder="Key"
-                  {...register(
-                    `services.${index}.environmentVariables.${i}.key`,
-                  )}
-                />
-                <input
-                  className="bg-zinc-800 p-2"
-                  placeholder="Value"
-                  {...register(
-                    `services.${index}.environmentVariables.${i}.value`,
-                  )}
-                />
-              </div>
-            ))}
+        return (
+          <div className="flex w-full gap-1">
             <button
-              className="mr-auto rounded bg-green-400/10 p-1 text-green-400"
+              className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 hover:bg-red-400/20"
               type="button"
-              onClick={() => appendEnvironment({ key: "", value: "" })}
+              onClick={() => removeServices(index)}
             >
-              <Plus size={20} />
+              <Minus size={20} />
             </button>
+            <div className="flex w-full flex-col gap-1">
+              <input
+                className="bg-zinc-800 p-2"
+                placeholder="Nome do serviço"
+                {...register(`services.${index}.name`)}
+              />
+              <input
+                className="bg-zinc-800 p-2"
+                list="common-service-names"
+                placeholder="Imagem docker do serviço"
+                {...register(`services.${index}.dockerImage`)}
+              />
+              <span className="pl-4">
+                <label htmlFor={`services.${index}.hasInternalNetwork`}>
+                  Se conecta a outro serviço interno?
+                </label>
+                <input
+                  id={`services.${index}.hasInternalNetwork`}
+                  type="checkbox"
+                  className="mx-2 inline bg-zinc-800 p-2"
+                  placeholder="Nome do serviço"
+                  {...register(`services.${index}.hasInternalNetwork`)}
+                />
+                {watch(`services.${index}.hasInternalNetwork`) && (
+                  <input
+                    className="w-full bg-zinc-800 p-2 disabled:opacity-60"
+                    placeholder="Ele que depende do outro? De qual?"
+                    {...register(`services.${index}.dependsOn`)}
+                  />
+                )}
+              </span>
+              <span className="pl-4">
+                <label htmlFor={`services.${index}.hasExposedConfig`}>
+                  Expor serviço para a internet?
+                </label>
+                <input
+                  id={`services.${index}.hasExposedConfig`}
+                  type="checkbox"
+                  className="mx-2 inline bg-zinc-800 p-2"
+                  placeholder="Nome do serviço"
+                  {...register(`services.${index}.hasExposedConfig`)}
+                />
+                {watch(`services.${index}.hasExposedConfig`) && (
+                  <div className="flex flex-col gap-1">
+                    <input
+                      className="w-full bg-zinc-800 p-2 disabled:opacity-60"
+                      placeholder="Regra. e.g. Host(`www.structej.com`) *"
+                      {...register(`services.${index}.exposedConfig.rule`)}
+                    />
+                    <input
+                      className="bg-zinc-800 p-2 disabled:opacity-60"
+                      placeholder="Especificar port"
+                      type="number"
+                      {...register(`services.${index}.exposedConfig.port`, {
+                        setValueAs(value) {
+                          if (value === "") return undefined;
+                          return parseInt(value, 10);
+                        },
+                      })}
+                    />
+                    {/* {errors.services?.[index]?.exposedConfig?.port?.message} */}
+                    <span className="pl-4">
+                      <label
+                        htmlFor={`services.${index}.exposedConfig.hasCertificate`}
+                      >
+                        Criar certificado?
+                      </label>
+                      <input
+                        id={`services.${index}.exposedConfig.hasCertificate`}
+                        type="checkbox"
+                        className="mx-2 inline bg-zinc-800 p-2"
+                        placeholder="Nome do serviço"
+                        {...register(
+                          `services.${index}.exposedConfig.hasCertificate`,
+                        )}
+                      />
+                      {watch(
+                        `services.${index}.exposedConfig.hasCertificate`,
+                      ) && (
+                        <div className="flex flex-col gap-1">
+                          <input
+                            className="w-full bg-zinc-800 p-2 disabled:opacity-60"
+                            placeholder="Nome do Certificado *"
+                            {...register(
+                              `services.${index}.exposedConfig.certificate.name`,
+                            )}
+                          />
+                          <input
+                            className="bg-zinc-800 p-2 disabled:opacity-60"
+                            placeholder="Domínio que precisa de https *"
+                            {...register(
+                              `services.${index}.exposedConfig.certificate.forDomain`,
+                            )}
+                          />
+                          <span className="flex flex-col gap-1 pl-4">
+                            <p>Sub-domínios que também precisam:</p>
+                            {fieldsCertificateSubDomains.map((f, i) => (
+                              <div className="flex w-full gap-1" key={f.id}>
+                                <button
+                                  className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 hover:bg-red-400/20"
+                                  type="button"
+                                  onClick={() =>
+                                    removeCertificateSubDomains(index)
+                                  }
+                                >
+                                  <Minus size={20} />
+                                </button>
+                                <div className="flex w-full flex-col gap-1">
+                                  <input
+                                    className="bg-zinc-800 p-2 disabled:opacity-60"
+                                    placeholder="Domínio que precisa de https *"
+                                    {...register(
+                                      `services.${index}.exposedConfig.certificate.forSubDomains.${i}.value`,
+                                    )}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                            <button
+                              className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
+                              type="button"
+                              onClick={() =>
+                                appendCertificateSubDomains({ value: "" })
+                              }
+                            >
+                              <Plus size={20} />
+                            </button>
+                          </span>
+                        </div>
+                      )}
+                    </span>
+                  </div>
+                )}
+              </span>
+              <div className="flex flex-col gap-1 pl-4">
+                <p>Variáveis de Ambiente</p>
+                {fieldsEnvironment.map((f, i) => (
+                  <div className="flex w-full gap-1" key={f.id}>
+                    <button
+                      className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 hover:bg-red-400/20"
+                      type="button"
+                      onClick={() => removeEnvironment(i)}
+                    >
+                      <Minus size={20} />
+                    </button>
+
+                    <input
+                      className="bg-zinc-800 p-2"
+                      placeholder="Key"
+                      {...register(
+                        `services.${index}.environmentVariables.${i}.key`,
+                      )}
+                    />
+                    <input
+                      className="bg-zinc-800 p-2"
+                      placeholder="Value"
+                      {...register(
+                        `services.${index}.environmentVariables.${i}.value`,
+                      )}
+                    />
+                  </div>
+                ))}
+                <button
+                  className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
+                  type="button"
+                  onClick={() => appendEnvironment({ key: "", value: "" })}
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    );
-  }
+        );
+      },
+    [],
+  );
 
   return (
     <main className="flex min-h-screen flex-col bg-zinc-900 p-8 text-white">
       {/* {JSON.stringify(errors, null, 2)} */}
       <h1 className="mb-8 text-4xl">Crie a Configuração do seu deploy</h1>
       <form
-        className="mx-auto flex w-96 flex-col gap-2"
-        onSubmit={handleSubmit(onSubmit)}
+        className="mx-auto flex w-full max-w-5xl flex-col gap-2 p-8"
+        onSubmit={(e) => {
+          handleSubmit(onSubmit)(e);
+          alert(JSON.stringify(errors));
+        }}
       >
         <div className="flex flex-col">
           <label htmlFor="deploy.name">Nome</label>
@@ -246,7 +330,7 @@ export default function FormPage() {
         {fieldsDomains.map((field, index) => (
           <div className="flex w-full gap-1">
             <button
-              className="rounded bg-red-400/10 p-1 text-red-400"
+              className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 hover:bg-red-400/20"
               type="button"
               onClick={() => removeDomains(index)}
               title={`Remover domínio ${field.value || "vazio"}`}
@@ -267,7 +351,7 @@ export default function FormPage() {
           </div>
         ))}
         <button
-          className="mr-auto rounded bg-green-400/10 p-1 text-green-400"
+          className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
           type="button"
           onClick={() => appendDomains({ value: "" })}
         >
@@ -275,10 +359,19 @@ export default function FormPage() {
         </button>
         <h2 className="text-xl">Serviços</h2>
         {fieldsServices.map((field, index) => {
-          return <Service key={field.id} index={index} />;
+          return (
+            <Service
+              key={field.id}
+              index={index}
+              errors={errors}
+              register={register}
+              removeServices={removeServices}
+              watch={watch}
+            />
+          );
         })}
         <button
-          className="mr-auto rounded bg-green-400/10 p-1 text-green-400"
+          className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
           type="button"
           onClick={() =>
             appendServices({
@@ -292,7 +385,10 @@ export default function FormPage() {
         >
           <Plus size={20} />
         </button>
-        <button className="p-4">Enviar</button>
+        <button className="relative ml-auto mt-8 flex items-center gap-4 rounded bg-blue-400/10 px-14 py-4 text-xl text-blue-400 hover:bg-blue-400/20">
+          Criar
+          <Rocket size={20} className="absolute right-8" />
+        </button>
 
         <datalist id="common-service-names">
           <option value="structej/projetos:nome-do-projeto-x.y"></option>
