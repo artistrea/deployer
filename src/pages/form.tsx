@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Minus, Plus, Rocket } from "lucide-react";
 import { useMemo } from "react";
+import { cn } from "~/utils/cn";
 
 const exposedConfigSchema = z.union([
   z.object({
@@ -101,12 +102,14 @@ export default function FormPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     control,
     watch,
   } = useForm<DeploySchema>({ resolver: zodResolver(schema) });
-  const onSubmit: SubmitHandler<DeploySchema> = (data) =>
+  const onSubmit: SubmitHandler<DeploySchema> = async (data) => {
+    await new Promise((res) => setTimeout(res, 4000));
     alert(JSON.stringify(data, null, 2));
+  };
 
   const {
     fields: fieldsDomains,
@@ -489,107 +492,132 @@ export default function FormPage() {
           handleSubmit(onSubmit)(e);
         }}
       >
-        <div className="flex flex-col">
-          <label htmlFor="deploy.name">Nome</label>
-          <input
-            id="deploy.name"
-            className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-            {...register("deploy.name")}
-          />
-          <ErrorMessage message={errors.deploy?.name?.message} />
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="deploy.description">Descrição</label>
-          <input
-            id="deploy.description"
-            className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-            {...register("deploy.description")}
-          />
-
-          <ErrorMessage message={errors.deploy?.description?.message} />
-        </div>
-        <div className="mb-4 flex flex-col gap-2 pl-4">
-          <h2 className="text-xl">Domínios</h2>
-          <span className="flex flex-col gap-1">
-            {fieldsDomains.map((field, index) => (
-              <div className="flex w-full flex-col gap-1" key={field.id}>
-                <div className="flex w-full gap-1">
-                  <button
-                    className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                    type="button"
-                    onClick={() => removeDomains(index)}
-                    title={`Remover domínio ${field.value || "vazio"}`}
-                  >
-                    <Minus size={20} />
-                  </button>
-                  <input
-                    className="block h-full rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                    key={field.id}
-                    {...register(`deployDomains.${index}.value`)}
-                  />
-                </div>
-                <span className="pb-1 text-sm text-red-500">
-                  <ErrorMessage
-                    message={errors.deployDomains?.[index]?.value?.message}
-                  />
-                </span>
-              </div>
-            ))}
-          </span>
-          <button
-            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-            type="button"
-            onClick={() => appendDomains({ value: "" })}
-          >
-            <Plus size={20} />
-          </button>
-          <ErrorMessage message={errors.deployDomains?.message} />
-
-          <h2 className="text-xl">Serviços</h2>
-          {fieldsServices.map((field, index) => {
-            return (
-              <Service
-                key={field.id}
-                index={index}
-                errors={errors}
-                register={register}
-                removeServices={removeServices}
-                watch={watch}
-                field={field}
-              />
-            );
-          })}
-          <button
-            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-            type="button"
-            onClick={() =>
-              appendServices({
-                name: "",
-                dockerImage: "",
-                hasInternalNetwork: false,
-                environmentVariables: [],
-                hasExposedConfig: false,
-              })
-            }
-          >
-            <Plus size={20} />
-          </button>
-        </div>
-        <ErrorMessage message={errors.services?.root?.message} />
-
-        <button
-          type="submit"
-          className="relative ml-auto mt-auto flex items-center gap-4 rounded bg-blue-400/10 px-14 py-4 text-xl text-blue-400 hover:bg-blue-400/20"
+        <fieldset
+          disabled={isSubmitting}
+          className="transition-opacity disabled:animate-pulse disabled:text-white/70 disabled:duration-500"
         >
-          Criar
-          <Rocket size={20} className="absolute right-9 top-1/2" />
-        </button>
+          <div className="flex flex-col">
+            <label htmlFor="deploy.name">Nome</label>
+            <input
+              id="deploy.name"
+              className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+              {...register("deploy.name")}
+            />
+            <ErrorMessage message={errors.deploy?.name?.message} />
+          </div>
+          <div className="flex flex-col">
+            <label htmlFor="deploy.description">Descrição</label>
+            <input
+              id="deploy.description"
+              className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+              {...register("deploy.description")}
+            />
 
-        <datalist id="common-service-names">
-          <option value="structej/projetos:nome-do-projeto-x.y"></option>
-          <option value="postgres:16.1-alpine3.19"></option>
-          <option value="mysql:8"></option>
-        </datalist>
+            <ErrorMessage message={errors.deploy?.description?.message} />
+          </div>
+          <div className="mb-4 flex flex-col gap-2 pl-4">
+            <span>
+              <h2 className="mt-6 text-xl">Domínios</h2>
+              <p className="mb-2 max-w-prose text-xs opacity-90">
+                Somente funciona como metadados. Não altera os arquivos gerados.
+              </p>
+            </span>
+            <span className="flex flex-col gap-1">
+              {fieldsDomains.map((field, index) => (
+                <div className="flex w-full flex-col gap-1" key={field.id}>
+                  <div className="flex w-full gap-1">
+                    <button
+                      className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                      type="button"
+                      onClick={() => removeDomains(index)}
+                      title={`Remover domínio ${field.value || "vazio"}`}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <input
+                      className="block h-full rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                      key={field.id}
+                      {...register(`deployDomains.${index}.value`)}
+                    />
+                  </div>
+                  <span className="pb-1 text-sm text-red-500">
+                    <ErrorMessage
+                      message={errors.deployDomains?.[index]?.value?.message}
+                    />
+                  </span>
+                </div>
+              ))}
+            </span>
+            <button
+              className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+              type="button"
+              onClick={() => appendDomains({ value: "" })}
+            >
+              <Plus size={20} />
+            </button>
+            <ErrorMessage message={errors.deployDomains?.message} />
+
+            <span>
+              <h2 className="mt-6 text-xl">Serviços</h2>
+              <p className="mb-2 max-w-prose text-xs opacity-90">Desc</p>
+            </span>
+            {fieldsServices.map((field, index) => {
+              return (
+                <Service
+                  key={field.id}
+                  index={index}
+                  errors={errors}
+                  register={register}
+                  removeServices={removeServices}
+                  watch={watch}
+                  field={field}
+                />
+              );
+            })}
+            <button
+              className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+              type="button"
+              onClick={() =>
+                appendServices({
+                  name: "",
+                  dockerImage: "",
+                  hasInternalNetwork: false,
+                  environmentVariables: [],
+                  hasExposedConfig: false,
+                })
+              }
+            >
+              <Plus size={20} />
+            </button>
+            <ErrorMessage
+              message={
+                errors.services?.message || errors.services?.root?.message
+              }
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="relative ml-auto mt-auto flex items-center gap-4 overflow-hidden rounded bg-blue-400/10 px-14 py-4 text-xl text-blue-400 hover:bg-blue-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+          >
+            Criar
+            <Rocket
+              size={20}
+              className={cn(
+                "absolute right-9 top-1/2 transition-transform duration-300 ease-in",
+                {
+                  "-translate-y-[250%] translate-x-[250%]": isSubmitting,
+                },
+              )}
+            />
+          </button>
+
+          <datalist id="common-service-names">
+            <option value="structej/projetos:nome-do-projeto-x.y"></option>
+            <option value="postgres:16.1-alpine3.19"></option>
+            <option value="mysql:8"></option>
+          </datalist>
+        </fieldset>
       </form>
     </main>
   );
