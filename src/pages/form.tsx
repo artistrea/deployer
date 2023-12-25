@@ -1,4 +1,9 @@
-import { useForm, SubmitHandler, useFieldArray } from "react-hook-form";
+import {
+  useForm,
+  SubmitHandler,
+  useFieldArray,
+  FieldErrors,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Minus, Plus, Rocket } from "lucide-react";
@@ -126,6 +131,7 @@ export default function FormPage() {
     register: typeof register;
     watch: typeof watch;
     errors: typeof errors;
+    field: (typeof fieldsServices)[number];
   };
 
   console.log(errors);
@@ -135,7 +141,14 @@ export default function FormPage() {
   // rerender may happen while changing input because of `watch` and `errors`
   const Service = useMemo(
     () =>
-      ({ index, register, removeServices, watch, errors }: ServiceProps) => {
+      ({
+        index,
+        register,
+        removeServices,
+        watch,
+        errors,
+        field,
+      }: ServiceProps) => {
         const {
           fields: fieldsEnvironment,
           append: appendEnvironment,
@@ -157,7 +170,7 @@ export default function FormPage() {
         return (
           <div className="flex w-full gap-1">
             <button
-              className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 hover:bg-red-400/20"
+              className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-red-400/20"
               type="button"
               onClick={() => removeServices(index)}
             >
@@ -165,52 +178,57 @@ export default function FormPage() {
             </button>
             <div className="flex w-full flex-col gap-1">
               <input
-                className="bg-zinc-800 p-2"
+                className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
                 placeholder="Nome do serviço"
                 {...register(`services.${index}.name`)}
               />
 
-              {errors.services?.[index]?.name?.message && (
-                <span className="py-1 text-sm text-red-500">
-                  {errors.services[index]?.name?.message}
-                </span>
-              )}
+              <ErrorMessage message={errors.services?.[index]?.name?.message} />
+
               <input
-                className="bg-zinc-800 p-2"
+                className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
                 list="common-service-names"
                 placeholder="Imagem docker do serviço"
                 {...register(`services.${index}.dockerImage`)}
               />
 
-              {errors.services?.[index]?.dockerImage?.message && (
-                <span className="py-1 text-sm text-red-500">
-                  {errors.services[index]?.dockerImage?.message}
-                </span>
-              )}
+              <ErrorMessage
+                message={errors.services?.[index]?.dockerImage?.message}
+              />
+
               <span className="pl-4">
-                <label htmlFor={`services.${index}.hasInternalNetwork`}>
+                <label
+                  className="mr-2"
+                  htmlFor={`services.${index}.hasInternalNetwork`}
+                >
                   Se conecta a outro serviço interno?
                 </label>
                 <input
                   id={`services.${index}.hasInternalNetwork`}
                   type="checkbox"
-                  className="mx-2 inline bg-zinc-800 p-2"
+                  className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
                   placeholder="Nome do serviço"
                   {...register(`services.${index}.hasInternalNetwork`)}
                 />
                 {watch(`services.${index}.hasInternalNetwork`) && (
                   <>
                     <input
-                      className="w-full bg-zinc-800 p-2 disabled:opacity-60"
+                      className="w-full rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
                       placeholder="Ele que depende do outro? De qual?"
                       {...register(`services.${index}.dependsOn`)}
                     />
 
-                    {errors.services?.[index]?.dependsOn.message && (
-                      <span className="py-1 text-sm text-red-500">
-                        {errors.services[index]!.dependsOn?.message}
-                      </span>
-                    )}
+                    <ErrorMessage
+                      message={
+                        (
+                          errors.services?.[index] as
+                            | undefined
+                            | FieldErrors<
+                                typeof field & { hasInternalNetwork: true }
+                              >
+                        )?.dependsOn?.message
+                      }
+                    />
                   </>
                 )}
               </span>
@@ -221,25 +239,32 @@ export default function FormPage() {
                 <input
                   id={`services.${index}.hasExposedConfig`}
                   type="checkbox"
-                  className="mx-2 inline bg-zinc-800 p-2"
+                  className="mx-2 inline rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
                   placeholder="Nome do serviço"
                   {...register(`services.${index}.hasExposedConfig`)}
                 />
                 {watch(`services.${index}.hasExposedConfig`) && (
                   <div className="flex flex-col gap-1">
                     <input
-                      className="w-full bg-zinc-800 p-2 disabled:opacity-60"
+                      className="w-full rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
                       placeholder="Regra. e.g. Host(`www.structej.com`) *"
                       {...register(`services.${index}.exposedConfig.rule`)}
                     />
 
-                    {errors.services?.[index]?.exposedConfig?.rule?.message && (
-                      <span className="py-1 text-sm text-red-500">
-                        {errors.services[index]!.exposedConfig?.rule?.message}
-                      </span>
-                    )}
+                    <ErrorMessage
+                      message={
+                        (
+                          errors.services?.[index] as
+                            | undefined
+                            | FieldErrors<
+                                typeof field & { hasExposedConfig: true }
+                              >
+                        )?.exposedConfig?.rule?.message
+                      }
+                    />
+
                     <input
-                      className="bg-zinc-800 p-2 disabled:opacity-60"
+                      className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
                       placeholder="Especificar port"
                       type="number"
                       {...register(`services.${index}.exposedConfig.port`, {
@@ -250,20 +275,21 @@ export default function FormPage() {
                       })}
                     />
 
-                    {errors.services?.[index]?.exposedConfig?.port?.message && (
-                      <span className="py-1 text-sm text-red-500">
-                        {errors.services[index]!.exposedConfig?.port?.message}
-                      </span>
-                    )}
+                    <ErrorMessage
+                      message={
+                        (
+                          errors.services?.[index] as
+                            | undefined
+                            | FieldErrors<
+                                typeof field & { hasExposedConfig: true }
+                              >
+                        )?.exposedConfig?.port?.message
+                      }
+                    />
 
-                    {/* {errors.services?.[index]?.exposedConfig?.message && (
-                      <span className="py-1 text-sm text-red-500">
-                        {errors.services[index]?.exposedConfig?.message}
-                      </span>
-                    )} */}
-                    {/* {errors.services?.[index]?.exposedConfig?.port?.message} */}
                     <span className="pl-4">
                       <label
+                        className="mr-2"
                         htmlFor={`services.${index}.exposedConfig.hasCertificate`}
                       >
                         Criar certificado?
@@ -271,96 +297,127 @@ export default function FormPage() {
                       <input
                         id={`services.${index}.exposedConfig.hasCertificate`}
                         type="checkbox"
-                        className="mx-2 inline bg-zinc-800 p-2"
+                        className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
                         placeholder="Nome do serviço"
                         {...register(
                           `services.${index}.exposedConfig.hasCertificate`,
                         )}
                       />
-                      {watch(
-                        `services.${index}.exposedConfig.hasCertificate`,
-                      ) && (
-                        <div className="flex flex-col gap-1">
-                          <input
-                            className="w-full bg-zinc-800 p-2 disabled:opacity-60"
-                            placeholder="Nome do Certificado *"
-                            {...register(
-                              `services.${index}.exposedConfig.certificate.name`,
-                            )}
-                          />
+                      {watch(`services.${index}.hasExposedConfig`) &&
+                        watch(
+                          `services.${index}.exposedConfig.hasCertificate`,
+                        ) && (
+                          <div className="flex flex-col gap-1">
+                            <input
+                              className="w-full rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
+                              placeholder="Nome do Certificado *"
+                              {...register(
+                                `services.${index}.exposedConfig.certificate.name`,
+                              )}
+                            />
 
-                          {errors.services?.[index]?.exposedConfig?.certificate
-                            ?.name?.message && (
-                            <span className="py-1 text-sm text-red-500">
-                              {
-                                errors.services[index]!.exposedConfig
-                                  ?.certificate?.name?.message
+                            <ErrorMessage
+                              message={
+                                (
+                                  errors.services?.[index] as
+                                    | undefined
+                                    | FieldErrors<
+                                        typeof field & {
+                                          hasExposedConfig: true;
+                                          exposedConfig: {
+                                            hasCertificate: true;
+                                          };
+                                        }
+                                      >
+                                )?.exposedConfig?.certificate?.name?.message
                               }
-                            </span>
-                          )}
-                          <input
-                            className="bg-zinc-800 p-2 disabled:opacity-60"
-                            placeholder="Domínio que precisa de https *"
-                            {...register(
-                              `services.${index}.exposedConfig.certificate.forDomain`,
-                            )}
-                          />
-                          {errors.services?.[index]?.exposedConfig?.certificate
-                            ?.forDomain?.message && (
-                            <span className="py-1 text-sm text-red-500">
-                              {
-                                errors.services[index]!.exposedConfig
-                                  ?.certificate?.forDomain?.message
+                            />
+
+                            <input
+                              className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
+                              placeholder="Domínio que precisa de https *"
+                              {...register(
+                                `services.${index}.exposedConfig.certificate.forDomain`,
+                              )}
+                            />
+
+                            <ErrorMessage
+                              message={
+                                (
+                                  errors.services?.[index] as
+                                    | undefined
+                                    | FieldErrors<
+                                        typeof field & {
+                                          hasExposedConfig: true;
+                                          exposedConfig: {
+                                            hasCertificate: true;
+                                          };
+                                        }
+                                      >
+                                )?.exposedConfig?.certificate?.forDomain
+                                  ?.message
                               }
-                            </span>
-                          )}
-                          <span className="flex flex-col gap-1 pl-4">
-                            <p>Subdomínios que também precisam:</p>
-                            {fieldsCertificateSubDomains.map((f, i) => (
-                              <div className="flex w-full gap-1" key={f.id}>
-                                <button
-                                  className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 hover:bg-red-400/20"
-                                  type="button"
-                                  onClick={() =>
-                                    removeCertificateSubDomains(index)
-                                  }
+                            />
+
+                            <span className="flex flex-col gap-1 pl-4">
+                              <p>Subdomínios que também precisam:</p>
+                              {fieldsCertificateSubDomains.map((f, i) => (
+                                <div
+                                  className="flex w-full flex-col gap-1"
+                                  key={f.id}
                                 >
-                                  <Minus size={20} />
-                                </button>
-                                <div className="flex w-full flex-col gap-1">
-                                  <input
-                                    className="bg-zinc-800 p-2 disabled:opacity-60"
-                                    placeholder="Subdomínio que precisa de https *"
-                                    {...register(
-                                      `services.${index}.exposedConfig.certificate.forSubDomains.${i}.value`,
-                                    )}
-                                  />
-                                  {errors.services?.[index]?.exposedConfig
-                                    ?.certificate?.forSubDomains?.[i]?.value
-                                    .message && (
-                                    <span className="py-1 text-sm text-red-500">
-                                      {
-                                        errors.services[index]!.exposedConfig
-                                          ?.certificate?.forSubDomains?.[i]
-                                          ?.value.message
+                                  <div className="flex w-full gap-1">
+                                    <button
+                                      className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-red-400/20"
+                                      type="button"
+                                      onClick={() =>
+                                        removeCertificateSubDomains(index)
                                       }
-                                    </span>
-                                  )}
+                                    >
+                                      <Minus size={20} />
+                                    </button>
+                                    <div className="flex w-full flex-col gap-1">
+                                      <input
+                                        className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
+                                        placeholder="Subdomínio que precisa de https *"
+                                        {...register(
+                                          `services.${index}.exposedConfig.certificate.forSubDomains.${i}.value`,
+                                        )}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <ErrorMessage
+                                    message={
+                                      (
+                                        errors.services?.[index] as
+                                          | undefined
+                                          | FieldErrors<
+                                              typeof field & {
+                                                hasExposedConfig: true;
+                                                exposedConfig: {
+                                                  hasCertificate: true;
+                                                };
+                                              }
+                                            >
+                                      )?.exposedConfig?.certificate
+                                        ?.forSubDomains?.[i]?.value?.message
+                                    }
+                                  />
                                 </div>
-                              </div>
-                            ))}
-                            <button
-                              className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
-                              type="button"
-                              onClick={() =>
-                                appendCertificateSubDomains({ value: "" })
-                              }
-                            >
-                              <Plus size={20} />
-                            </button>
-                          </span>
-                        </div>
-                      )}
+                              ))}
+                              <button
+                                className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-green-400/20"
+                                type="button"
+                                onClick={() =>
+                                  appendCertificateSubDomains({ value: "" })
+                                }
+                              >
+                                <Plus size={20} />
+                              </button>
+                            </span>
+                          </div>
+                        )}
                     </span>
                   </div>
                 )}
@@ -370,7 +427,7 @@ export default function FormPage() {
                 {fieldsEnvironment.map((f, i) => (
                   <div className="flex w-full gap-1" key={f.id}>
                     <button
-                      className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 hover:bg-red-400/20"
+                      className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-red-400/20"
                       type="button"
                       onClick={() => removeEnvironment(i)}
                     >
@@ -378,53 +435,43 @@ export default function FormPage() {
                     </button>
                     <div className="flex flex-col gap-1">
                       <input
-                        className="bg-zinc-800 p-2"
+                        className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
                         placeholder="Key"
                         {...register(
                           `services.${index}.environmentVariables.${i}.key`,
                         )}
                       />
-                      {errors.services?.[index]?.environmentVariables?.[i]?.key
-                        ?.message && (
-                        <span className="py-1 text-sm text-red-500">
-                          {
-                            errors.services?.[index]?.environmentVariables?.[i]
-                              ?.key?.message
-                          }
-                        </span>
-                      )}
+                      <ErrorMessage
+                        message={
+                          errors.services?.[index]?.environmentVariables?.[i]
+                            ?.key?.message
+                        }
+                      />
+
                       <input
-                        className="bg-zinc-800 p-2"
+                        className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
                         placeholder="Value"
                         {...register(
                           `services.${index}.environmentVariables.${i}.value`,
                         )}
                       />
-                      {errors.services?.[index]?.environmentVariables?.[i]
-                        ?.value?.message && (
-                        <span className="py-1 text-sm text-red-500">
-                          {
-                            errors.services?.[index]?.environmentVariables?.[i]
-                              ?.value?.message
-                          }
-                        </span>
-                      )}
+                      <ErrorMessage
+                        message={
+                          errors.services?.[index]?.environmentVariables?.[i]
+                            ?.value?.message
+                        }
+                      />
                     </div>
                   </div>
                 ))}
                 <button
-                  className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
+                  className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-green-400/20"
                   type="button"
                   onClick={() => appendEnvironment({ key: "", value: "" })}
                 >
                   <Plus size={20} />
                 </button>
-
-                {errors.services?.root?.message && (
-                  <span className="py-1 text-sm text-red-500">
-                    {errors.services?.root?.message}
-                  </span>
-                )}
+                <ErrorMessage message={errors.services?.root?.message} />
               </div>
             </div>
           </div>
@@ -447,27 +494,20 @@ export default function FormPage() {
           <label htmlFor="deploy.name">Nome</label>
           <input
             id="deploy.name"
-            className="bg-zinc-800 p-2"
+            className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
             {...register("deploy.name")}
           />
-          {errors.deploy?.name && (
-            <span className="py-1 text-sm text-red-500">
-              {errors.deploy.name.message}
-            </span>
-          )}
+          <ErrorMessage message={errors.deploy?.name?.message} />
         </div>
         <div className="flex flex-col">
           <label htmlFor="deploy.description">Descrição</label>
           <input
             id="deploy.description"
-            className="bg-zinc-800 p-2"
+            className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
             {...register("deploy.description")}
           />
-          {errors.deploy?.description && (
-            <span className="py-1 text-sm text-red-500">
-              {errors.deploy.description.message}
-            </span>
-          )}
+
+          <ErrorMessage message={errors.deploy?.description?.message} />
         </div>
         <div className="mb-4 flex flex-col gap-2 pl-4">
           <h2 className="text-xl">Domínios</h2>
@@ -476,7 +516,7 @@ export default function FormPage() {
               <div className="flex w-full flex-col gap-1" key={field.id}>
                 <div className="flex w-full gap-1">
                   <button
-                    className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 hover:bg-red-400/20"
+                    className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-red-400/20"
                     type="button"
                     onClick={() => removeDomains(index)}
                     title={`Remover domínio ${field.value || "vazio"}`}
@@ -484,30 +524,28 @@ export default function FormPage() {
                     <Minus size={20} />
                   </button>
                   <input
-                    className="block h-full bg-zinc-800 p-2"
+                    className="block h-full rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
                     key={field.id}
                     {...register(`deployDomains.${index}.value`)}
                   />
                 </div>
                 <span className="pb-1 text-sm text-red-500">
-                  {errors.deployDomains?.[index]?.value?.message}
+                  <ErrorMessage
+                    message={errors.deployDomains?.[index]?.value?.message}
+                  />
                 </span>
               </div>
             ))}
           </span>
           <button
-            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
+            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-green-400/20"
             type="button"
             onClick={() => appendDomains({ value: "" })}
           >
             <Plus size={20} />
           </button>
+          <ErrorMessage message={errors.deployDomains?.message} />
 
-          {errors.deployDomains?.message && (
-            <span className="py-1 text-sm text-red-500">
-              {errors.deployDomains.message}
-            </span>
-          )}
           <h2 className="text-xl">Serviços</h2>
           {fieldsServices.map((field, index) => {
             return (
@@ -518,11 +556,12 @@ export default function FormPage() {
                 register={register}
                 removeServices={removeServices}
                 watch={watch}
+                field={field}
               />
             );
           })}
           <button
-            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
+            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-green-400/20"
             type="button"
             onClick={() =>
               appendServices({
@@ -536,12 +575,7 @@ export default function FormPage() {
           >
             <Plus size={20} />
           </button>
-
-          {errors.services?.message && (
-            <span className="py-1 text-sm text-red-500">
-              {errors.services?.message}
-            </span>
-          )}
+          <ErrorMessage message={errors.services?.message} />
         </div>
 
         <button className="relative ml-auto mt-auto flex items-center gap-4 rounded bg-blue-400/10 px-14 py-4 text-xl text-blue-400 hover:bg-blue-400/20">
@@ -556,5 +590,15 @@ export default function FormPage() {
         </datalist>
       </form>
     </main>
+  );
+}
+
+function ErrorMessage<T extends string | undefined>({
+  message,
+}: {
+  message: T;
+}) {
+  return (
+    message && <span className="py-1 text-sm text-red-500">{message}</span>
   );
 }
