@@ -294,14 +294,14 @@ export default function FormPage() {
   );
 
   return (
-    <main className="flex min-h-screen flex-col bg-zinc-900 p-8 text-white">
+    <main className="flex h-full min-h-screen flex-col bg-zinc-900 p-8 text-white">
       {/* {JSON.stringify(errors, null, 2)} */}
       <h1 className="mb-8 text-4xl">Crie a Configuração do seu deploy</h1>
       <form
-        className="mx-auto flex w-full max-w-5xl flex-col gap-2 p-8"
+        className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-2 p-8"
         onSubmit={(e) => {
           handleSubmit(onSubmit)(e);
-          alert(JSON.stringify(errors));
+          // alert(JSON.stringify(errors));
         }}
       >
         <div className="flex flex-col">
@@ -322,70 +322,76 @@ export default function FormPage() {
             className="bg-zinc-800 p-2"
             {...register("deploy.description")}
           />
-          <span className="py-1 text-sm text-red-500">
-            {errors.deploy?.description?.message}
-          </span>
+          {errors.deploy?.description && (
+            <span className="py-1 text-sm text-red-500">
+              {errors.deploy.description.message}
+            </span>
+          )}
         </div>
-        <h2 className="text-xl">Domínios</h2>
-        {fieldsDomains.map((field, index) => (
-          <div className="flex w-full gap-1">
-            <button
-              className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 hover:bg-red-400/20"
-              type="button"
-              onClick={() => removeDomains(index)}
-              title={`Remover domínio ${field.value || "vazio"}`}
-            >
-              <Minus size={20} />
-            </button>
-            <div className="flex w-full flex-col gap-1">
-              <input
-                className="bg-zinc-800 p-2"
+        <div className="mb-4 flex flex-col gap-2 pl-4">
+          <h2 className="text-xl">Domínios</h2>
+          <span className="flex flex-col gap-1">
+            {fieldsDomains.map((field, index) => (
+              <div className="flex w-full flex-col gap-1">
+                <div className="flex w-full gap-1">
+                  <button
+                    className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 hover:bg-red-400/20"
+                    type="button"
+                    onClick={() => removeDomains(index)}
+                    title={`Remover domínio ${field.value || "vazio"}`}
+                  >
+                    <Minus size={20} />
+                  </button>
+                  <input
+                    className="block h-full bg-zinc-800 p-2"
+                    key={field.id}
+                    {...register(`deployDomains.${index}.value`)}
+                  />
+                </div>
+                <span className="pb-1 text-sm text-red-500">
+                  {errors.deployDomains?.[index]?.value?.message}
+                </span>
+              </div>
+            ))}
+          </span>
+          <button
+            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
+            type="button"
+            onClick={() => appendDomains({ value: "" })}
+          >
+            <Plus size={20} />
+          </button>
+          <h2 className="text-xl">Serviços</h2>
+          {fieldsServices.map((field, index) => {
+            return (
+              <Service
                 key={field.id}
-                {...register(`deployDomains.${index}.value`)}
+                index={index}
+                errors={errors}
+                register={register}
+                removeServices={removeServices}
+                watch={watch}
               />
+            );
+          })}
+          <button
+            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
+            type="button"
+            onClick={() =>
+              appendServices({
+                name: "",
+                dockerImage: "",
+                hasInternalNetwork: false,
+                environmentVariables: [],
+                hasExposedConfig: false,
+              })
+            }
+          >
+            <Plus size={20} />
+          </button>
+        </div>
 
-              <span className="py-1 text-sm text-red-500">
-                {errors.deployDomains?.[index]?.value?.message}
-              </span>
-            </div>
-          </div>
-        ))}
-        <button
-          className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
-          type="button"
-          onClick={() => appendDomains({ value: "" })}
-        >
-          <Plus size={20} />
-        </button>
-        <h2 className="text-xl">Serviços</h2>
-        {fieldsServices.map((field, index) => {
-          return (
-            <Service
-              key={field.id}
-              index={index}
-              errors={errors}
-              register={register}
-              removeServices={removeServices}
-              watch={watch}
-            />
-          );
-        })}
-        <button
-          className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 hover:bg-green-400/20"
-          type="button"
-          onClick={() =>
-            appendServices({
-              name: "",
-              dockerImage: "",
-              hasInternalNetwork: false,
-              environmentVariables: [],
-              hasExposedConfig: false,
-            })
-          }
-        >
-          <Plus size={20} />
-        </button>
-        <button className="relative ml-auto mt-8 flex items-center gap-4 rounded bg-blue-400/10 px-14 py-4 text-xl text-blue-400 hover:bg-blue-400/20">
+        <button className="relative ml-auto mt-auto flex items-center gap-4 rounded bg-blue-400/10 px-14 py-4 text-xl text-blue-400 hover:bg-blue-400/20">
           Criar
           <Rocket size={20} className="absolute right-8" />
         </button>
