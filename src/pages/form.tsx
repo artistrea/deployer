@@ -1,8 +1,85 @@
 import { useForm, SubmitHandler, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Minus, PackagePlus, Plus, Rocket, Save } from "lucide-react";
+import { Minus, Plus, Rocket } from "lucide-react";
 import { useMemo } from "react";
+
+const exposedConfigSchema = z.union([
+  z.object({
+    rule: z.string().min("Host(``)".length).max(256),
+    port: z.number().optional(),
+    hasCertificate: z.literal(false),
+  }),
+  z.object({
+    rule: z.string().min("Host(``)".length).max(256),
+    port: z.number().optional(),
+    hasCertificate: z.literal(true),
+    certificate: z.object({
+      name: z.string().min(1).max(32),
+      forDomain: z.string().min(1).max(64),
+      forSubDomains: z.array(
+        z.object({
+          value: z.string().min(1).max(64),
+        }),
+      ),
+    }),
+  }),
+]);
+
+const serviceSchema = z.union([
+  z.object({
+    name: z.string().min(1).max(32),
+    dockerImage: z.string().min(1).max(64),
+    hasInternalNetwork: z.literal(false),
+    hasExposedConfig: z.literal(false),
+    environmentVariables: z.array(
+      z.object({
+        key: z.string().min(1).max(64),
+        value: z.string().min(1).max(256),
+      }),
+    ),
+  }),
+  z.object({
+    name: z.string().min(1).max(32),
+    dockerImage: z.string().min(1).max(64),
+    hasInternalNetwork: z.literal(true),
+    dependsOn: z.string().max(32).optional(),
+    hasExposedConfig: z.literal(false),
+    environmentVariables: z.array(
+      z.object({
+        key: z.string().min(1).max(64),
+        value: z.string().min(1).max(256),
+      }),
+    ),
+  }),
+  z.object({
+    name: z.string().min(1).max(32),
+    dockerImage: z.string().min(1).max(64),
+    hasInternalNetwork: z.literal(false),
+    hasExposedConfig: z.literal(true),
+    exposedConfig: exposedConfigSchema,
+    environmentVariables: z.array(
+      z.object({
+        key: z.string().min(1).max(64),
+        value: z.string().min(1).max(256),
+      }),
+    ),
+  }),
+  z.object({
+    name: z.string().min(1).max(32),
+    dockerImage: z.string().min(1).max(64),
+    hasInternalNetwork: z.literal(true),
+    dependsOn: z.string().max(32).optional(),
+    hasExposedConfig: z.literal(true),
+    exposedConfig: exposedConfigSchema,
+    environmentVariables: z.array(
+      z.object({
+        key: z.string().min(1).max(64),
+        value: z.string().min(1).max(256),
+      }),
+    ),
+  }),
+]);
 
 const schema = z.object({
   deploy: z.object({
@@ -10,39 +87,7 @@ const schema = z.object({
     description: z.string().min(1).max(65535),
   }),
   deployDomains: z.array(z.object({ value: z.string().min(1).max(64) })),
-  services: z.array(
-    z.object({
-      name: z.string().min(1).max(32),
-      dockerImage: z.string().min(1).max(64),
-      hasInternalNetwork: z.boolean(),
-      dependsOn: z.string().max(32).optional(),
-      hasExposedConfig: z.boolean(),
-      exposedConfig: z
-        .object({
-          rule: z.string().min("Host(``)".length).max(256),
-          port: z.number().optional(),
-          certificate: z
-            .object({
-              name: z.string().min(1).max(32),
-              forDomain: z.string().min(1).max(64),
-              forSubDomains: z.array(
-                z.object({
-                  value: z.string().min(1).max(64),
-                }),
-              ),
-            })
-            .optional(),
-          hasCertificate: z.boolean().optional(),
-        })
-        .optional(),
-      environmentVariables: z.array(
-        z.object({
-          key: z.string().min(1).max(64),
-          value: z.string().min(1).max(256),
-        }),
-      ),
-    }),
-  ),
+  services: z.array(serviceSchema).min(1),
 });
 
 type DeploySchema = z.infer<typeof schema>;
@@ -83,6 +128,8 @@ export default function FormPage() {
     errors: typeof errors;
   };
 
+  console.log(errors);
+
   // component Service made inside so that types may be inferred from current component
   // useMemo so that rerenders don't remove focus from current input
   // rerender may happen while changing input because of `watch` and `errors`
@@ -122,12 +169,24 @@ export default function FormPage() {
                 placeholder="Nome do serviço"
                 {...register(`services.${index}.name`)}
               />
+
+              {errors.services?.[index]?.name?.message && (
+                <span className="py-1 text-sm text-red-500">
+                  {errors.services[index]?.name?.message}
+                </span>
+              )}
               <input
                 className="bg-zinc-800 p-2"
                 list="common-service-names"
                 placeholder="Imagem docker do serviço"
                 {...register(`services.${index}.dockerImage`)}
               />
+
+              {errors.services?.[index]?.dockerImage?.message && (
+                <span className="py-1 text-sm text-red-500">
+                  {errors.services[index]?.dockerImage?.message}
+                </span>
+              )}
               <span className="pl-4">
                 <label htmlFor={`services.${index}.hasInternalNetwork`}>
                   Se conecta a outro serviço interno?
@@ -140,11 +199,19 @@ export default function FormPage() {
                   {...register(`services.${index}.hasInternalNetwork`)}
                 />
                 {watch(`services.${index}.hasInternalNetwork`) && (
-                  <input
-                    className="w-full bg-zinc-800 p-2 disabled:opacity-60"
-                    placeholder="Ele que depende do outro? De qual?"
-                    {...register(`services.${index}.dependsOn`)}
-                  />
+                  <>
+                    <input
+                      className="w-full bg-zinc-800 p-2 disabled:opacity-60"
+                      placeholder="Ele que depende do outro? De qual?"
+                      {...register(`services.${index}.dependsOn`)}
+                    />
+
+                    {errors.services?.[index]?.dependsOn.message && (
+                      <span className="py-1 text-sm text-red-500">
+                        {errors.services[index]!.dependsOn?.message}
+                      </span>
+                    )}
+                  </>
                 )}
               </span>
               <span className="pl-4">
@@ -165,6 +232,12 @@ export default function FormPage() {
                       placeholder="Regra. e.g. Host(`www.structej.com`) *"
                       {...register(`services.${index}.exposedConfig.rule`)}
                     />
+
+                    {errors.services?.[index]?.exposedConfig?.rule?.message && (
+                      <span className="py-1 text-sm text-red-500">
+                        {errors.services[index]!.exposedConfig?.rule?.message}
+                      </span>
+                    )}
                     <input
                       className="bg-zinc-800 p-2 disabled:opacity-60"
                       placeholder="Especificar port"
@@ -176,6 +249,18 @@ export default function FormPage() {
                         },
                       })}
                     />
+
+                    {errors.services?.[index]?.exposedConfig?.port?.message && (
+                      <span className="py-1 text-sm text-red-500">
+                        {errors.services[index]!.exposedConfig?.port?.message}
+                      </span>
+                    )}
+
+                    {/* {errors.services?.[index]?.exposedConfig?.message && (
+                      <span className="py-1 text-sm text-red-500">
+                        {errors.services[index]?.exposedConfig?.message}
+                      </span>
+                    )} */}
                     {/* {errors.services?.[index]?.exposedConfig?.port?.message} */}
                     <span className="pl-4">
                       <label
@@ -203,6 +288,16 @@ export default function FormPage() {
                               `services.${index}.exposedConfig.certificate.name`,
                             )}
                           />
+
+                          {errors.services?.[index]?.exposedConfig?.certificate
+                            ?.name?.message && (
+                            <span className="py-1 text-sm text-red-500">
+                              {
+                                errors.services[index]!.exposedConfig
+                                  ?.certificate?.name?.message
+                              }
+                            </span>
+                          )}
                           <input
                             className="bg-zinc-800 p-2 disabled:opacity-60"
                             placeholder="Domínio que precisa de https *"
@@ -210,8 +305,17 @@ export default function FormPage() {
                               `services.${index}.exposedConfig.certificate.forDomain`,
                             )}
                           />
+                          {errors.services?.[index]?.exposedConfig?.certificate
+                            ?.forDomain?.message && (
+                            <span className="py-1 text-sm text-red-500">
+                              {
+                                errors.services[index]!.exposedConfig
+                                  ?.certificate?.forDomain?.message
+                              }
+                            </span>
+                          )}
                           <span className="flex flex-col gap-1 pl-4">
-                            <p>Sub-domínios que também precisam:</p>
+                            <p>Subdomínios que também precisam:</p>
                             {fieldsCertificateSubDomains.map((f, i) => (
                               <div className="flex w-full gap-1" key={f.id}>
                                 <button
@@ -226,11 +330,22 @@ export default function FormPage() {
                                 <div className="flex w-full flex-col gap-1">
                                   <input
                                     className="bg-zinc-800 p-2 disabled:opacity-60"
-                                    placeholder="Domínio que precisa de https *"
+                                    placeholder="Subdomínio que precisa de https *"
                                     {...register(
                                       `services.${index}.exposedConfig.certificate.forSubDomains.${i}.value`,
                                     )}
                                   />
+                                  {errors.services?.[index]?.exposedConfig
+                                    ?.certificate?.forSubDomains?.[i]?.value
+                                    .message && (
+                                    <span className="py-1 text-sm text-red-500">
+                                      {
+                                        errors.services[index]!.exposedConfig
+                                          ?.certificate?.forSubDomains?.[i]
+                                          ?.value.message
+                                      }
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -261,21 +376,40 @@ export default function FormPage() {
                     >
                       <Minus size={20} />
                     </button>
-
-                    <input
-                      className="bg-zinc-800 p-2"
-                      placeholder="Key"
-                      {...register(
-                        `services.${index}.environmentVariables.${i}.key`,
+                    <div className="flex flex-col gap-1">
+                      <input
+                        className="bg-zinc-800 p-2"
+                        placeholder="Key"
+                        {...register(
+                          `services.${index}.environmentVariables.${i}.key`,
+                        )}
+                      />
+                      {errors.services?.[index]?.environmentVariables?.[i]?.key
+                        ?.message && (
+                        <span className="py-1 text-sm text-red-500">
+                          {
+                            errors.services?.[index]?.environmentVariables?.[i]
+                              ?.key?.message
+                          }
+                        </span>
                       )}
-                    />
-                    <input
-                      className="bg-zinc-800 p-2"
-                      placeholder="Value"
-                      {...register(
-                        `services.${index}.environmentVariables.${i}.value`,
+                      <input
+                        className="bg-zinc-800 p-2"
+                        placeholder="Value"
+                        {...register(
+                          `services.${index}.environmentVariables.${i}.value`,
+                        )}
+                      />
+                      {errors.services?.[index]?.environmentVariables?.[i]
+                        ?.value?.message && (
+                        <span className="py-1 text-sm text-red-500">
+                          {
+                            errors.services?.[index]?.environmentVariables?.[i]
+                              ?.value?.message
+                          }
+                        </span>
                       )}
-                    />
+                    </div>
                   </div>
                 ))}
                 <button
@@ -285,6 +419,12 @@ export default function FormPage() {
                 >
                   <Plus size={20} />
                 </button>
+
+                {errors.services?.root?.message && (
+                  <span className="py-1 text-sm text-red-500">
+                    {errors.services?.root?.message}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -301,7 +441,6 @@ export default function FormPage() {
         className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-2 p-8"
         onSubmit={(e) => {
           handleSubmit(onSubmit)(e);
-          // alert(JSON.stringify(errors));
         }}
       >
         <div className="flex flex-col">
@@ -311,9 +450,11 @@ export default function FormPage() {
             className="bg-zinc-800 p-2"
             {...register("deploy.name")}
           />
-          <span className="py-1 text-sm text-red-500">
-            {errors.deploy?.name?.message}
-          </span>
+          {errors.deploy?.name && (
+            <span className="py-1 text-sm text-red-500">
+              {errors.deploy.name.message}
+            </span>
+          )}
         </div>
         <div className="flex flex-col">
           <label htmlFor="deploy.description">Descrição</label>
@@ -332,7 +473,7 @@ export default function FormPage() {
           <h2 className="text-xl">Domínios</h2>
           <span className="flex flex-col gap-1">
             {fieldsDomains.map((field, index) => (
-              <div className="flex w-full flex-col gap-1">
+              <div className="flex w-full flex-col gap-1" key={field.id}>
                 <div className="flex w-full gap-1">
                   <button
                     className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 hover:bg-red-400/20"
@@ -361,6 +502,12 @@ export default function FormPage() {
           >
             <Plus size={20} />
           </button>
+
+          {errors.deployDomains?.message && (
+            <span className="py-1 text-sm text-red-500">
+              {errors.deployDomains.message}
+            </span>
+          )}
           <h2 className="text-xl">Serviços</h2>
           {fieldsServices.map((field, index) => {
             return (
@@ -389,11 +536,17 @@ export default function FormPage() {
           >
             <Plus size={20} />
           </button>
+
+          {errors.services?.message && (
+            <span className="py-1 text-sm text-red-500">
+              {errors.services?.message}
+            </span>
+          )}
         </div>
 
         <button className="relative ml-auto mt-auto flex items-center gap-4 rounded bg-blue-400/10 px-14 py-4 text-xl text-blue-400 hover:bg-blue-400/20">
           Criar
-          <Rocket size={20} className="absolute right-8" />
+          <Rocket size={20} className="absolute right-9 top-1/2" />
         </button>
 
         <datalist id="common-service-names">
