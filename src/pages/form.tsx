@@ -170,7 +170,7 @@ export default function FormPage() {
         return (
           <div className="flex w-full gap-1">
             <button
-              className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-red-400/20"
+              className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
               type="button"
               onClick={() => removeServices(index)}
             >
@@ -178,7 +178,7 @@ export default function FormPage() {
             </button>
             <div className="flex w-full flex-col gap-1">
               <input
-                className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
+                className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                 placeholder="Nome do serviço"
                 {...register(`services.${index}.name`)}
               />
@@ -186,7 +186,7 @@ export default function FormPage() {
               <ErrorMessage message={errors.services?.[index]?.name?.message} />
 
               <input
-                className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
+                className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                 list="common-service-names"
                 placeholder="Imagem docker do serviço"
                 {...register(`services.${index}.dockerImage`)}
@@ -206,14 +206,14 @@ export default function FormPage() {
                 <input
                   id={`services.${index}.hasInternalNetwork`}
                   type="checkbox"
-                  className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
+                  className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                   placeholder="Nome do serviço"
                   {...register(`services.${index}.hasInternalNetwork`)}
                 />
                 {watch(`services.${index}.hasInternalNetwork`) && (
                   <>
                     <input
-                      className="w-full rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
+                      className="w-full rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
                       placeholder="Ele que depende do outro? De qual?"
                       {...register(`services.${index}.dependsOn`)}
                     />
@@ -239,14 +239,14 @@ export default function FormPage() {
                 <input
                   id={`services.${index}.hasExposedConfig`}
                   type="checkbox"
-                  className="mx-2 inline rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
+                  className="mx-2 inline rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                   placeholder="Nome do serviço"
                   {...register(`services.${index}.hasExposedConfig`)}
                 />
                 {watch(`services.${index}.hasExposedConfig`) && (
                   <div className="flex flex-col gap-1">
                     <input
-                      className="w-full rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
+                      className="w-full rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
                       placeholder="Regra. e.g. Host(`www.structej.com`) *"
                       {...register(`services.${index}.exposedConfig.rule`)}
                     />
@@ -264,7 +264,7 @@ export default function FormPage() {
                     />
 
                     <input
-                      className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
+                      className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
                       placeholder="Especificar port"
                       type="number"
                       {...register(`services.${index}.exposedConfig.port`, {
@@ -297,7 +297,7 @@ export default function FormPage() {
                       <input
                         id={`services.${index}.exposedConfig.hasCertificate`}
                         type="checkbox"
-                        className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
+                        className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                         placeholder="Nome do serviço"
                         {...register(
                           `services.${index}.exposedConfig.hasCertificate`,
@@ -309,7 +309,7 @@ export default function FormPage() {
                         ) && (
                           <div className="flex flex-col gap-1">
                             <input
-                              className="w-full rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
+                              className="w-full rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
                               placeholder="Nome do Certificado *"
                               {...register(
                                 `services.${index}.exposedConfig.certificate.name`,
@@ -334,7 +334,7 @@ export default function FormPage() {
                             />
 
                             <input
-                              className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
+                              className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
                               placeholder="Domínio que precisa de https *"
                               {...register(
                                 `services.${index}.exposedConfig.certificate.forDomain`,
@@ -368,7 +368,7 @@ export default function FormPage() {
                                 >
                                   <div className="flex w-full gap-1">
                                     <button
-                                      className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-red-400/20"
+                                      className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                                       type="button"
                                       onClick={() =>
                                         removeCertificateSubDomains(index)
@@ -378,7 +378,7 @@ export default function FormPage() {
                                     </button>
                                     <div className="flex w-full flex-col gap-1">
                                       <input
-                                        className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current disabled:opacity-60"
+                                        className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
                                         placeholder="Subdomínio que precisa de https *"
                                         {...register(
                                           `services.${index}.exposedConfig.certificate.forSubDomains.${i}.value`,
@@ -407,7 +407,7 @@ export default function FormPage() {
                                 </div>
                               ))}
                               <button
-                                className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-green-400/20"
+                                className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                                 type="button"
                                 onClick={() =>
                                   appendCertificateSubDomains({ value: "" })
@@ -427,7 +427,7 @@ export default function FormPage() {
                 {fieldsEnvironment.map((f, i) => (
                   <div className="flex w-full gap-1" key={f.id}>
                     <button
-                      className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-red-400/20"
+                      className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                       type="button"
                       onClick={() => removeEnvironment(i)}
                     >
@@ -435,7 +435,7 @@ export default function FormPage() {
                     </button>
                     <div className="flex flex-col gap-1">
                       <input
-                        className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
+                        className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                         placeholder="Key"
                         {...register(
                           `services.${index}.environmentVariables.${i}.key`,
@@ -449,7 +449,7 @@ export default function FormPage() {
                       />
 
                       <input
-                        className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
+                        className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                         placeholder="Value"
                         {...register(
                           `services.${index}.environmentVariables.${i}.value`,
@@ -465,7 +465,7 @@ export default function FormPage() {
                   </div>
                 ))}
                 <button
-                  className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-green-400/20"
+                  className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                   type="button"
                   onClick={() => appendEnvironment({ key: "", value: "" })}
                 >
@@ -493,7 +493,7 @@ export default function FormPage() {
           <label htmlFor="deploy.name">Nome</label>
           <input
             id="deploy.name"
-            className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
+            className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
             {...register("deploy.name")}
           />
           <ErrorMessage message={errors.deploy?.name?.message} />
@@ -502,7 +502,7 @@ export default function FormPage() {
           <label htmlFor="deploy.description">Descrição</label>
           <input
             id="deploy.description"
-            className="rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
+            className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
             {...register("deploy.description")}
           />
 
@@ -515,7 +515,7 @@ export default function FormPage() {
               <div className="flex w-full flex-col gap-1" key={field.id}>
                 <div className="flex w-full gap-1">
                   <button
-                    className="rounded bg-red-400/10 p-1 text-red-400 focus-within:bg-red-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-red-400/20"
+                    className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                     type="button"
                     onClick={() => removeDomains(index)}
                     title={`Remover domínio ${field.value || "vazio"}`}
@@ -523,7 +523,7 @@ export default function FormPage() {
                     <Minus size={20} />
                   </button>
                   <input
-                    className="block h-full rounded-sm bg-zinc-200/5 p-2 focus-within:bg-zinc-200/15 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current"
+                    className="block h-full rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                     key={field.id}
                     {...register(`deployDomains.${index}.value`)}
                   />
@@ -537,7 +537,7 @@ export default function FormPage() {
             ))}
           </span>
           <button
-            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-green-400/20"
+            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
             type="button"
             onClick={() => appendDomains({ value: "" })}
           >
@@ -560,7 +560,7 @@ export default function FormPage() {
             );
           })}
           <button
-            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 focus-within:bg-green-400/20 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-current hover:bg-green-400/20"
+            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
             type="button"
             onClick={() =>
               appendServices({
