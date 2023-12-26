@@ -35,7 +35,7 @@ function serviceTemplate(
         : `
       - proxy`
     }${
-      !dependsOn
+      !dependsOn.length
         ? ""
         : `
     depends_on:${dependsOn.reduce(
@@ -44,7 +44,7 @@ function serviceTemplate(
       "",
     )}`
     }${
-      !volumes
+      !volumes.length
         ? ""
         : `
     volumes:${volumes.reduce(
@@ -53,7 +53,7 @@ function serviceTemplate(
       "",
     )}`
     }${
-      !environmentVariables
+      !environmentVariables.length
         ? ""
         : `
     environment:${environmentVariables.reduce(
@@ -97,10 +97,14 @@ ${
       # # Domains that need certificate:
       - traefik.http.routers.${name}-router-websecure.tls.domains[0].main=${
         exposedConfig.certificate.forDomain
-      }
+      }${
+        !exposedConfig.certificate.forSubDomains.length
+          ? ""
+          : `
       - traefik.http.routers.${name}-router-websecure.tls.domains[0].sans=${exposedConfig.certificate.forSubDomains
         .map((sbd) => sbd.value)
         .join(",")}`
+      }`
 }`
     }
 `;
