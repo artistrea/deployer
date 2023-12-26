@@ -6,6 +6,7 @@ import {
   deploys,
   environmentVariables,
   exposedConfigs,
+  serviceDependsOn,
   serviceVolumes,
   services,
 } from "./schema";
@@ -54,6 +55,11 @@ async function seed() {
       },
     ])
   )[0].insertId;
+
+  db.insert(serviceDependsOn).values({
+    dependantId: firstServiceId + 1,
+    dependsOnId: firstServiceId + 2,
+  });
 
   const firstConfigId = (
     await db.insert(exposedConfigs).values([

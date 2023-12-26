@@ -9,94 +9,12 @@ import { z } from "zod";
 import { Minus, Plus, Rocket } from "lucide-react";
 import { useMemo } from "react";
 import { cn } from "~/utils/cn";
-
-const exposedConfigSchema = z.union([
-  z.object({
-    rule: z.string().min("Host(``)".length).max(256),
-    port: z.number().optional(),
-    hasCertificate: z.literal(false),
-  }),
-  z.object({
-    rule: z.string().min("Host(``)".length).max(256),
-    port: z.number().optional(),
-    hasCertificate: z.literal(true),
-    certificate: z.object({
-      name: z.string().min(1).max(32),
-      forDomain: z.string().min(1).max(64),
-      forSubDomains: z.array(
-        z.object({
-          value: z.string().min(1).max(64),
-        }),
-      ),
-    }),
-  }),
-]);
-
-const serviceSchema = z.union([
-  z.object({
-    name: z.string().min(1).max(32),
-    dockerImage: z.string().min(1).max(64),
-    hasInternalNetwork: z.literal(false),
-    hasExposedConfig: z.literal(false),
-    environmentVariables: z.array(
-      z.object({
-        key: z.string().min(1).max(64),
-        value: z.string().min(1).max(256),
-      }),
-    ),
-  }),
-  z.object({
-    name: z.string().min(1).max(32),
-    dockerImage: z.string().min(1).max(64),
-    hasInternalNetwork: z.literal(true),
-    dependsOn: z.string().max(32).optional(),
-    hasExposedConfig: z.literal(false),
-    environmentVariables: z.array(
-      z.object({
-        key: z.string().min(1).max(64),
-        value: z.string().min(1).max(256),
-      }),
-    ),
-  }),
-  z.object({
-    name: z.string().min(1).max(32),
-    dockerImage: z.string().min(1).max(64),
-    hasInternalNetwork: z.literal(false),
-    hasExposedConfig: z.literal(true),
-    exposedConfig: exposedConfigSchema,
-    environmentVariables: z.array(
-      z.object({
-        key: z.string().min(1).max(64),
-        value: z.string().min(1).max(256),
-      }),
-    ),
-  }),
-  z.object({
-    name: z.string().min(1).max(32),
-    dockerImage: z.string().min(1).max(64),
-    hasInternalNetwork: z.literal(true),
-    dependsOn: z.string().max(32).optional(),
-    hasExposedConfig: z.literal(true),
-    exposedConfig: exposedConfigSchema,
-    environmentVariables: z.array(
-      z.object({
-        key: z.string().min(1).max(64),
-        value: z.string().min(1).max(256),
-      }),
-    ),
-  }),
-]);
-
-const schema = z.object({
-  deploy: z.object({
-    name: z.string().min(1).max(64),
-    description: z.string().min(1).max(65535),
-  }),
-  deployDomains: z.array(z.object({ value: z.string().min(1).max(64) })),
-  services: z.array(serviceSchema).min(1),
-});
-
-type DeploySchema = z.infer<typeof schema>;
+import {
+  CreateDeploySchema,
+  createDeploySchema,
+} from "~/validations/createDeploy";
+import { api } from "~/utils/api";
+import { useRouter } from "next/router";
 
 export default function FormPage() {
   const {
@@ -105,10 +23,17 @@ export default function FormPage() {
     formState: { errors, isSubmitting },
     control,
     watch,
-  } = useForm<DeploySchema>({ resolver: zodResolver(schema) });
-  const onSubmit: SubmitHandler<DeploySchema> = async (data) => {
-    await new Promise((res) => setTimeout(res, 4000));
-    alert(JSON.stringify(data, null, 2));
+  } = useForm<CreateDeploySchema>({
+    resolver: zodResolver(createDeploySchema),
+  });
+  const router = useRouter();
+
+  const { mutateAsync: createDeploy } = api.deploy.create.useMutation();
+
+  const onSubmit: SubmitHandler<CreateDeploySchema> = async (data) => {
+    await createDeploy(data)
+      .then((deployId) => router.push(`/deploys/${deployId}`))
+      .catch((err) => alert(err.message));
   };
 
   const {
@@ -598,15 +523,16 @@ export default function FormPage() {
 
           <button
             type="submit"
-            className="relative ml-auto mt-auto flex items-center gap-4 overflow-hidden rounded bg-blue-400/10 px-14 py-4 text-xl text-blue-400 hover:bg-blue-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+            className="group relative ml-auto mt-auto flex items-center gap-4 overflow-hidden rounded bg-blue-400/10 px-14 py-4 text-xl text-blue-400 hover:bg-blue-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
           >
             Criar
             <Rocket
               size={20}
               className={cn(
-                "absolute right-9 top-1/2 transition-transform duration-300 ease-in",
+                "absolute right-9 top-1/2 -translate-x-[125%] translate-y-[125%] transition-transform duration-300 ease-out  group-hover:translate-x-0 group-hover:translate-y-0  group-focus-visible:translate-x-0 group-focus-visible:translate-y-0",
                 {
-                  "-translate-y-[250%] translate-x-[250%]": isSubmitting,
+                  "-translate-y-[250%] translate-x-[250%] group-hover:-translate-y-[250%] group-hover:translate-x-[250%] group-focus-visible:-translate-y-[250%] group-focus-visible:translate-x-[250%]":
+                    isSubmitting,
                 },
               )}
             />
