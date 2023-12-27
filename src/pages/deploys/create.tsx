@@ -5,7 +5,6 @@ import {
   FieldErrors,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Minus, Plus, Rocket } from "lucide-react";
 import { useMemo } from "react";
 import { cn } from "~/utils/cn";
@@ -26,6 +25,7 @@ export default function FormPage() {
   } = useForm<CreateDeploySchema>({
     resolver: zodResolver(createDeploySchema),
   });
+
   const router = useRouter();
 
   const { mutateAsync: createDeploy } = api.deploy.create.useMutation();
@@ -487,18 +487,31 @@ export default function FormPage() {
               <p className="mb-2 max-w-prose text-xs opacity-90">Desc</p>
             </span>
             {fieldsServices.map((field, index) => {
+              const error =
+                errors.services?.[index]?.root || errors.services?.[index];
+
+              const errMessage =
+                error?.type === "invalid_literal"
+                  ? "Service needs to be either exposed or internal"
+                  : error?.message;
+
               return (
-                <Service
-                  key={field.id}
-                  index={index}
-                  errors={errors}
-                  register={register}
-                  removeServices={removeServices}
-                  watch={watch}
-                  field={field}
-                />
+                <>
+                  <Service
+                    key={field.id}
+                    index={index}
+                    errors={errors}
+                    register={register}
+                    removeServices={removeServices}
+                    watch={watch}
+                    field={field}
+                  />
+
+                  <ErrorMessage message={errMessage} />
+                </>
               );
             })}
+
             <button
               className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
               type="button"
@@ -508,7 +521,13 @@ export default function FormPage() {
                   dockerImage: "",
                   hasInternalNetwork: false,
                   environmentVariables: [],
-                  hasExposedConfig: false,
+                  hasExposedConfig: true,
+                  exposedConfig: {
+                    rule: `Host(${watch("deployDomains")
+                      .map((d) => `\`${d.value}\``)
+                      .join(", ")})`,
+                    hasCertificate: false,
+                  },
                 })
               }
             >
@@ -549,12 +568,6 @@ export default function FormPage() {
   );
 }
 
-function ErrorMessage<T extends string | undefined>({
-  message,
-}: {
-  message: T;
-}) {
-  return (
-    message && <span className="py-1 text-sm text-red-500">{message}</span>
-  );
+function ErrorMessage({ message }: { message: string | undefined }) {
+  return <span className="h-6 pb-1 text-sm text-red-500">{message}</span>;
 }

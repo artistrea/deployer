@@ -57,9 +57,12 @@ export default function DeploysPage() {
             ))}
           </ul>
         </main>
-        <button className="sticky top-full mt-4 block rounded bg-green-400/10 px-3 py-2 text-green-400 shadow hover:bg-green-400/20">
+        <Link
+          href="/deploys/create"
+          className="sticky top-full mt-4 block w-max rounded bg-green-400/10 px-3 py-2 text-green-400 shadow hover:bg-green-400/20"
+        >
           Adicionar Deploy
-        </button>
+        </Link>
       </section>
     </>
   );

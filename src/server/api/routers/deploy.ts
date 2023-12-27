@@ -27,9 +27,10 @@ export const deployRouter = createTRPCRouter({
         const deployId = (await tx.insert(deploys).values(input.deploy))[0]
           .insertId;
 
-        await tx
-          .insert(deployDomains)
-          .values(input.deployDomains.map((d) => ({ ...d, deployId })));
+        if (input.deployDomains.length)
+          await tx
+            .insert(deployDomains)
+            .values(input.deployDomains.map((d) => ({ ...d, deployId })));
 
         // careful when getting the first id and ++ing to the rest
         // concurrency may fuck it up, unless db engine locks during insert
@@ -53,9 +54,10 @@ export const deployRouter = createTRPCRouter({
           })),
         );
 
-        await tx
-          .insert(environmentVariables)
-          .values(environmentVariablesToInsert);
+        if (environmentVariablesToInsert.length)
+          await tx
+            .insert(environmentVariables)
+            .values(environmentVariablesToInsert);
 
         const dependsOnToInsert = input.services.flatMap((s, i) => {
           if (!s.hasInternalNetwork) return [];
@@ -63,12 +65,6 @@ export const deployRouter = createTRPCRouter({
           const dependsOnId =
             firstServiceId +
             input.services.findIndex((s2) => s2.name === s.dependsOn);
-
-          if (dependsOnId < firstServiceId)
-            throw new TRPCError({
-              code: "UNPROCESSABLE_CONTENT",
-              message: `Service ${s.name} depends on ${s.dependsOn}, but it does not exist!`,
-            });
 
           return [
             {
@@ -78,7 +74,8 @@ export const deployRouter = createTRPCRouter({
           ];
         });
 
-        await tx.insert(serviceDependsOn).values(dependsOnToInsert);
+        if (dependsOnToInsert.length)
+          await tx.insert(serviceDependsOn).values(dependsOnToInsert);
 
         const configsToInsert = input.services.flatMap((s, i) =>
           s.hasExposedConfig
@@ -92,51 +89,58 @@ export const deployRouter = createTRPCRouter({
             : [],
         );
 
-        const firstConfigId = (
-          await tx.insert(exposedConfigs).values(configsToInsert)
-        )[0].insertId;
+        if (configsToInsert.length) {
+          const firstConfigId = (
+            await tx.insert(exposedConfigs).values(configsToInsert)
+          )[0].insertId;
 
-        const configsWithCert = filterOutFalse(
-          input.services
-            .filter((s) => s.hasExposedConfig)
-            .map(
-              (s, i) =>
-                s.hasExposedConfig && {
-                  ...s.exposedConfig,
-                  id: firstConfigId + i,
-                },
-            ),
-        );
+          const configsWithCert = filterOutFalse(
+            input.services
+              .filter(
+                (s) => s.hasExposedConfig && s.exposedConfig.hasCertificate,
+              )
+              .map(
+                (s, i) =>
+                  s.hasExposedConfig && {
+                    ...s.exposedConfig,
+                    id: firstConfigId + i,
+                  },
+              ),
+          );
 
-        type ConfigsWithCert = ((typeof configsWithCert)[number] & {
-          hasCertificate: true;
-        })[];
+          type ConfigsWithCert = ((typeof configsWithCert)[number] & {
+            hasCertificate: true;
+          })[];
 
-        const firstCertificateId = (
-          await tx.insert(certificates).values(
-            (configsWithCert as ConfigsWithCert).map((c) => ({
-              exposedConfigId: c.id,
-              name: c.certificate.name,
-              forDomain: c.certificate.forDomain,
-            })),
-          )
-        )[0].insertId;
+          if (configsWithCert.length) {
+            const firstCertificateId = (
+              await tx.insert(certificates).values(
+                (configsWithCert as ConfigsWithCert).map((c) => ({
+                  exposedConfigId: c.id,
+                  name: c.certificate.name,
+                  forDomain: c.certificate.forDomain,
+                })),
+              )
+            )[0].insertId;
 
-        const certsWithId = (configsWithCert as ConfigsWithCert).map(
-          (c, i) => ({
-            ...c.certificate,
-            id: firstCertificateId + i,
-          }),
-        );
+            const certsWithId = (configsWithCert as ConfigsWithCert).map(
+              (c, i) => ({
+                ...c.certificate,
+                id: firstCertificateId + i,
+              }),
+            );
 
-        await tx.insert(certificateSubDomains).values(
-          certsWithId.flatMap((cert) =>
-            cert.forSubDomains.map((sub) => ({
-              certificateId: cert.id,
-              value: sub.value,
-            })),
-          ),
-        );
+            const subDomainsToInsert = certsWithId.flatMap((cert) =>
+              cert.forSubDomains.map((sub) => ({
+                certificateId: cert.id,
+                value: sub.value,
+              })),
+            );
+
+            if (subDomainsToInsert.length)
+              await tx.insert(certificateSubDomains).values(subDomainsToInsert);
+          }
+        }
 
         return deployId;
       });
