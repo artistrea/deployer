@@ -6,7 +6,12 @@ import {
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Minus, Plus, Rocket } from "lucide-react";
-import { useMemo } from "react";
+import React, {
+  DetailedHTMLProps,
+  InputHTMLAttributes,
+  LabelHTMLAttributes,
+  useMemo,
+} from "react";
 import { cn } from "~/utils/cn";
 import {
   CreateDeploySchema,
@@ -14,6 +19,10 @@ import {
 } from "~/validations/createDeploy";
 import { api } from "~/utils/api";
 import { useRouter } from "next/router";
+import { ErrorMessage } from "~/components/forms/ErrorMessage";
+import { Input } from "~/components/forms/Input";
+import { Label } from "~/components/forms/Label";
+import { TextArea } from "~/components/forms/TextArea";
 
 export default function FormPage() {
   const {
@@ -104,254 +113,35 @@ export default function FormPage() {
             >
               <Minus size={20} />
             </button>
-            <div className="flex w-full flex-col gap-1">
-              <input
-                className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                placeholder="Nome do serviço"
+            <div className="flex w-full flex-col">
+              <Label htmlFor={`services.${index}.name`}>
+                Nome do Serviço *
+              </Label>
+              <Input
+                id={`services.${index}.name`}
+                placeholder="example-service-api"
                 {...register(`services.${index}.name`)}
+                autoComplete="off"
               />
 
               <ErrorMessage message={errors.services?.[index]?.name?.message} />
 
-              <input
-                className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+              <Label htmlFor={`services.${index}.dockerImage`}>
+                Nome da Imagem Docker *
+              </Label>
+              <Input
                 list="common-service-names"
-                placeholder="Imagem docker do serviço"
+                id={`services.${index}.dockerImage`}
+                placeholder="image:v"
                 {...register(`services.${index}.dockerImage`)}
+                autoComplete="off"
               />
-
               <ErrorMessage
                 message={errors.services?.[index]?.dockerImage?.message}
               />
 
-              <span className="pl-4">
-                <label
-                  className="mr-2"
-                  htmlFor={`services.${index}.hasInternalNetwork`}
-                >
-                  Se conecta a outro serviço interno?
-                </label>
-                <input
-                  id={`services.${index}.hasInternalNetwork`}
-                  type="checkbox"
-                  className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                  placeholder="Nome do serviço"
-                  {...register(`services.${index}.hasInternalNetwork`)}
-                />
-                {watch(`services.${index}.hasInternalNetwork`) && (
-                  <>
-                    <input
-                      className="w-full rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
-                      placeholder="Ele que depende do outro? De qual?"
-                      {...register(`services.${index}.dependsOn`)}
-                    />
-
-                    <ErrorMessage
-                      message={
-                        (
-                          errors.services?.[index] as
-                            | undefined
-                            | FieldErrors<
-                                typeof field & { hasInternalNetwork: true }
-                              >
-                        )?.dependsOn?.message
-                      }
-                    />
-                  </>
-                )}
-              </span>
-              <span className="pl-4">
-                <label htmlFor={`services.${index}.hasExposedConfig`}>
-                  Expor serviço para a internet?
-                </label>
-                <input
-                  id={`services.${index}.hasExposedConfig`}
-                  type="checkbox"
-                  className="mx-2 inline rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                  placeholder="Nome do serviço"
-                  {...register(`services.${index}.hasExposedConfig`)}
-                />
-                {watch(`services.${index}.hasExposedConfig`) && (
-                  <div className="flex flex-col gap-1">
-                    <input
-                      className="w-full rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
-                      placeholder="Regra. e.g. Host(`www.structej.com`) *"
-                      {...register(`services.${index}.exposedConfig.rule`)}
-                    />
-
-                    <ErrorMessage
-                      message={
-                        (
-                          errors.services?.[index] as
-                            | undefined
-                            | FieldErrors<
-                                typeof field & { hasExposedConfig: true }
-                              >
-                        )?.exposedConfig?.rule?.message
-                      }
-                    />
-
-                    <input
-                      className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
-                      placeholder="Especificar port"
-                      type="number"
-                      {...register(`services.${index}.exposedConfig.port`, {
-                        setValueAs(value) {
-                          if (value === "") return undefined;
-                          return parseInt(value, 10);
-                        },
-                      })}
-                    />
-
-                    <ErrorMessage
-                      message={
-                        (
-                          errors.services?.[index] as
-                            | undefined
-                            | FieldErrors<
-                                typeof field & { hasExposedConfig: true }
-                              >
-                        )?.exposedConfig?.port?.message
-                      }
-                    />
-
-                    <span className="pl-4">
-                      <label
-                        className="mr-2"
-                        htmlFor={`services.${index}.exposedConfig.hasCertificate`}
-                      >
-                        Criar certificado?
-                      </label>
-                      <input
-                        id={`services.${index}.exposedConfig.hasCertificate`}
-                        type="checkbox"
-                        className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                        placeholder="Nome do serviço"
-                        {...register(
-                          `services.${index}.exposedConfig.hasCertificate`,
-                        )}
-                      />
-                      {watch(`services.${index}.hasExposedConfig`) &&
-                        watch(
-                          `services.${index}.exposedConfig.hasCertificate`,
-                        ) && (
-                          <div className="flex flex-col gap-1">
-                            <input
-                              className="w-full rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
-                              placeholder="Nome do Certificado *"
-                              {...register(
-                                `services.${index}.exposedConfig.certificate.name`,
-                              )}
-                            />
-
-                            <ErrorMessage
-                              message={
-                                (
-                                  errors.services?.[index] as
-                                    | undefined
-                                    | FieldErrors<
-                                        typeof field & {
-                                          hasExposedConfig: true;
-                                          exposedConfig: {
-                                            hasCertificate: true;
-                                          };
-                                        }
-                                      >
-                                )?.exposedConfig?.certificate?.name?.message
-                              }
-                            />
-
-                            <input
-                              className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
-                              placeholder="Domínio que precisa de https *"
-                              {...register(
-                                `services.${index}.exposedConfig.certificate.forDomain`,
-                              )}
-                            />
-
-                            <ErrorMessage
-                              message={
-                                (
-                                  errors.services?.[index] as
-                                    | undefined
-                                    | FieldErrors<
-                                        typeof field & {
-                                          hasExposedConfig: true;
-                                          exposedConfig: {
-                                            hasCertificate: true;
-                                          };
-                                        }
-                                      >
-                                )?.exposedConfig?.certificate?.forDomain
-                                  ?.message
-                              }
-                            />
-
-                            <span className="flex flex-col gap-1 pl-4">
-                              <p>Subdomínios que também precisam:</p>
-                              {fieldsCertificateSubDomains.map((f, i) => (
-                                <div
-                                  className="flex w-full flex-col gap-1"
-                                  key={f.id}
-                                >
-                                  <div className="flex w-full gap-1">
-                                    <button
-                                      className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                                      type="button"
-                                      onClick={() =>
-                                        removeCertificateSubDomains(index)
-                                      }
-                                    >
-                                      <Minus size={20} />
-                                    </button>
-                                    <div className="flex w-full flex-col gap-1">
-                                      <input
-                                        className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current disabled:opacity-60"
-                                        placeholder="Subdomínio que precisa de https *"
-                                        {...register(
-                                          `services.${index}.exposedConfig.certificate.forSubDomains.${i}.value`,
-                                        )}
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <ErrorMessage
-                                    message={
-                                      (
-                                        errors.services?.[index] as
-                                          | undefined
-                                          | FieldErrors<
-                                              typeof field & {
-                                                hasExposedConfig: true;
-                                                exposedConfig: {
-                                                  hasCertificate: true;
-                                                };
-                                              }
-                                            >
-                                      )?.exposedConfig?.certificate
-                                        ?.forSubDomains?.[i]?.value?.message
-                                    }
-                                  />
-                                </div>
-                              ))}
-                              <button
-                                className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                                type="button"
-                                onClick={() =>
-                                  appendCertificateSubDomains({ value: "" })
-                                }
-                              >
-                                <Plus size={20} />
-                              </button>
-                            </span>
-                          </div>
-                        )}
-                    </span>
-                  </div>
-                )}
-              </span>
-              <div className="flex flex-col gap-1 pl-4">
-                <p>Variáveis de Ambiente</p>
+              <p className="mb-1 mt-2">Variáveis de Ambiente</p>
+              <div className="flex flex-col gap-1 pl-8">
                 {fieldsEnvironment.map((f, i) => (
                   <div className="flex w-full gap-1" key={f.id}>
                     <button
@@ -361,34 +151,37 @@ export default function FormPage() {
                     >
                       <Minus size={20} />
                     </button>
-                    <div className="flex flex-col gap-1">
-                      <input
-                        className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                        placeholder="Key"
-                        {...register(
-                          `services.${index}.environmentVariables.${i}.key`,
-                        )}
-                      />
-                      <ErrorMessage
-                        message={
-                          errors.services?.[index]?.environmentVariables?.[i]
-                            ?.key?.message
-                        }
-                      />
-
-                      <input
-                        className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                        placeholder="Value"
-                        {...register(
-                          `services.${index}.environmentVariables.${i}.value`,
-                        )}
-                      />
-                      <ErrorMessage
-                        message={
-                          errors.services?.[index]?.environmentVariables?.[i]
-                            ?.value?.message
-                        }
-                      />
+                    <div className="flex w-full flex-col gap-1">
+                      <span className="flex w-full items-center gap-2">
+                        <Input
+                          className="w-1/2"
+                          placeholder="Key *"
+                          {...register(
+                            `services.${index}.environmentVariables.${i}.key`,
+                          )}
+                        />
+                        <ErrorMessage
+                          message={
+                            errors.services?.[index]?.environmentVariables?.[i]
+                              ?.key?.message
+                          }
+                        />
+                      </span>
+                      <span className="flex w-full items-center gap-2">
+                        <Input
+                          className="w-1/2"
+                          placeholder="Value *"
+                          {...register(
+                            `services.${index}.environmentVariables.${i}.value`,
+                          )}
+                        />
+                        <ErrorMessage
+                          message={
+                            errors.services?.[index]?.environmentVariables?.[i]
+                              ?.value?.message
+                          }
+                        />
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -399,7 +192,269 @@ export default function FormPage() {
                 >
                   <Plus size={20} />
                 </button>
+
+                <ErrorMessage
+                  message={
+                    errors.services?.[index]?.environmentVariables?.root
+                      ?.message
+                  }
+                />
               </div>
+
+              <Label
+                className="my-2"
+                htmlFor={`services.${index}.hasInternalNetwork`}
+              >
+                <Input
+                  id={`services.${index}.hasInternalNetwork`}
+                  type="checkbox"
+                  className="mr-2"
+                  placeholder="Nome do serviço"
+                  {...register(`services.${index}.hasInternalNetwork`)}
+                />
+                <p className="inline text-base">
+                  Se conecta a outro serviço interno?
+                </p>
+              </Label>
+              <fieldset
+                className="flex flex-col pl-8 disabled:opacity-30"
+                disabled={!watch(`services.${index}.hasInternalNetwork`)}
+              >
+                <Label htmlFor={`services.${index}.dependsOn`}>
+                  Depende de quem?
+                </Label>
+                <Input
+                  id={`services.${index}.dependsOn`}
+                  className="w-full"
+                  placeholder="db"
+                  {...register(`services.${index}.dependsOn`)}
+                />
+
+                <ErrorMessage
+                  message={
+                    (
+                      errors.services?.[index] as
+                        | undefined
+                        | FieldErrors<
+                            typeof field & { hasInternalNetwork: true }
+                          >
+                    )?.dependsOn?.message
+                  }
+                />
+              </fieldset>
+
+              <Label
+                className="my-2"
+                htmlFor={`services.${index}.hasExposedConfig`}
+              >
+                <Input
+                  id={`services.${index}.hasExposedConfig`}
+                  type="checkbox"
+                  className="mr-2"
+                  placeholder="Nome do serviço"
+                  {...register(`services.${index}.hasExposedConfig`)}
+                />
+                <p className="inline text-base">
+                  Expor serviço para a internet?
+                </p>
+              </Label>
+              <fieldset
+                className="pl-8 disabled:opacity-30"
+                disabled={!watch(`services.${index}.hasExposedConfig`)}
+              >
+                <div className="flex flex-col gap-1">
+                  <Label htmlFor={`services.${index}.exposedConfig.rule`}>
+                    Regra de redirecionamento *
+                  </Label>
+                  <Input
+                    id={`services.${index}.exposedConfig.rule`}
+                    className="w-full"
+                    placeholder="Host(`example.com`, `www.example.com`)"
+                    {...register(`services.${index}.exposedConfig.rule`)}
+                  />
+
+                  <ErrorMessage
+                    message={
+                      (
+                        errors.services?.[index] as
+                          | undefined
+                          | FieldErrors<
+                              typeof field & { hasExposedConfig: true }
+                            >
+                      )?.exposedConfig?.rule?.message
+                    }
+                  />
+
+                  <Label htmlFor={`services.${index}.exposedConfig.port`}>
+                    Especificar porta
+                  </Label>
+                  <Input
+                    id={`services.${index}.exposedConfig.port`}
+                    type="number"
+                    {...register(`services.${index}.exposedConfig.port`, {
+                      setValueAs(value) {
+                        if (value === "") return undefined;
+                        return parseInt(value, 10);
+                      },
+                    })}
+                  />
+
+                  <ErrorMessage
+                    message={
+                      (
+                        errors.services?.[index] as
+                          | undefined
+                          | FieldErrors<
+                              typeof field & { hasExposedConfig: true }
+                            >
+                      )?.exposedConfig?.port?.message
+                    }
+                  />
+
+                  <Label
+                    className="my-2"
+                    htmlFor={`services.${index}.exposedConfig.hasCertificate`}
+                  >
+                    <Input
+                      id={`services.${index}.exposedConfig.hasCertificate`}
+                      className="mr-2"
+                      type="checkbox"
+                      placeholder="Nome do serviço"
+                      {...register(
+                        `services.${index}.exposedConfig.hasCertificate`,
+                      )}
+                    />
+                    <p className="inline text-base">Criar certificado?</p>
+                  </Label>
+                  <fieldset
+                    disabled={
+                      !watch(`services.${index}.exposedConfig.hasCertificate`)
+                    }
+                    className="pl-8 disabled:opacity-30"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <Label
+                        htmlFor={`services.${index}.exposedConfig.certificate.name`}
+                      >
+                        Nome do Certificado *
+                      </Label>
+                      <Input
+                        className="w-full"
+                        id={`services.${index}.exposedConfig.certificate.name`}
+                        placeholder="nome-cert"
+                        {...register(
+                          `services.${index}.exposedConfig.certificate.name`,
+                        )}
+                      />
+
+                      <ErrorMessage
+                        message={
+                          (
+                            errors.services?.[index] as
+                              | undefined
+                              | FieldErrors<
+                                  typeof field & {
+                                    hasExposedConfig: true;
+                                    exposedConfig: {
+                                      hasCertificate: true;
+                                    };
+                                  }
+                                >
+                          )?.exposedConfig?.certificate?.name?.message
+                        }
+                      />
+
+                      <Label
+                        htmlFor={`services.${index}.exposedConfig.certificate.forDomain`}
+                      >
+                        Domínio que precisa de https *
+                      </Label>
+                      <Input
+                        placeholder="example.com"
+                        id={`services.${index}.exposedConfig.certificate.forDomain`}
+                        {...register(
+                          `services.${index}.exposedConfig.certificate.forDomain`,
+                        )}
+                      />
+
+                      <ErrorMessage
+                        message={
+                          (
+                            errors.services?.[index] as
+                              | undefined
+                              | FieldErrors<
+                                  typeof field & {
+                                    hasExposedConfig: true;
+                                    exposedConfig: {
+                                      hasCertificate: true;
+                                    };
+                                  }
+                                >
+                          )?.exposedConfig?.certificate?.forDomain?.message
+                        }
+                      />
+
+                      <p className="mt-1 text-sm">
+                        Subdomínios que também precisam:
+                      </p>
+                      <span className="flex flex-col gap-1 pl-8">
+                        {fieldsCertificateSubDomains.map((f, i) => (
+                          <div
+                            className="flex w-full flex-col gap-1"
+                            key={f.id}
+                          >
+                            <div className="flex w-full gap-1">
+                              <button
+                                className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                                type="button"
+                                onClick={() =>
+                                  removeCertificateSubDomains(index)
+                                }
+                              >
+                                <Minus size={20} />
+                              </button>
+                              <Input
+                                className="w-1/2"
+                                placeholder="www.example.com *"
+                                {...register(
+                                  `services.${index}.exposedConfig.certificate.forSubDomains.${i}.value`,
+                                )}
+                              />
+                              <ErrorMessage
+                                className="my-auto ml-1"
+                                message={
+                                  (
+                                    errors.services?.[index] as
+                                      | undefined
+                                      | FieldErrors<
+                                          typeof field & {
+                                            hasExposedConfig: true;
+                                            exposedConfig: {
+                                              hasCertificate: true;
+                                            };
+                                          }
+                                        >
+                                  )?.exposedConfig?.certificate
+                                    ?.forSubDomains?.[i]?.value?.message
+                                }
+                              />
+                            </div>
+                          </div>
+                        ))}
+                        <button
+                          className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                          type="button"
+                          onClick={() =>
+                            appendCertificateSubDomains({ value: "" })
+                          }
+                        >
+                          <Plus size={20} />
+                        </button>
+                      </span>
+                    </div>
+                  </fieldset>
+                </div>
+              </fieldset>
             </div>
           </div>
         );
@@ -410,82 +465,99 @@ export default function FormPage() {
   return (
     <main className="flex h-full min-h-screen flex-col bg-zinc-900 p-8 text-white">
       {/* {JSON.stringify(errors, null, 2)} */}
-      <h1 className="mb-8 text-4xl">Crie a Configuração do seu deploy</h1>
       <form
         className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-2 p-8"
         onSubmit={(e) => {
           handleSubmit(onSubmit)(e);
         }}
       >
+        <div className="-ml-2 mb-6">
+          <h1 className="-ml-2 text-3xl">Novo Deploy</h1>
+          <p className="mt-1 max-w-prose text-lg leading-6 text-zinc-300">
+            Adicione metadados na primeira parte, e, na segunda, as informações
+            que serão utilizadas para gerar o deploy.
+          </p>
+        </div>
         <fieldset
           disabled={isSubmitting}
           className="transition-opacity disabled:animate-pulse disabled:text-white/70 disabled:duration-500"
         >
+          <span className="mb-6 block">
+            <h2 className="-ml-2 mt-6 text-xl">Deploy</h2>
+            <p className="max-w-prose text-sm leading-6 text-zinc-300">
+              Essas informações serão usadas para identificar o deploy neste
+              site apenas.
+            </p>
+          </span>
           <div className="flex flex-col">
-            <label htmlFor="deploy.name">Nome</label>
-            <input
-              id="deploy.name"
-              className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-              {...register("deploy.name")}
-            />
+            <Label htmlFor="deploy.name">Nome *</Label>
+            <Input id="deploy.name" {...register("deploy.name")} />
             <ErrorMessage message={errors.deploy?.name?.message} />
           </div>
           <div className="flex flex-col">
-            <label htmlFor="deploy.description">Descrição</label>
-            <input
+            <Label htmlFor="deploy.description">Descrição *</Label>
+            <TextArea
               id="deploy.description"
-              className="rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
               {...register("deploy.description")}
             />
 
+            <p className="text-xs leading-6 text-zinc-300">
+              Escreva as tecnologias, os repositórios, as branchs dos
+              repositórios e outras informações importantes.
+            </p>
             <ErrorMessage message={errors.deploy?.description?.message} />
           </div>
-          <div className="mb-4 flex flex-col gap-2 pl-4">
-            <span>
-              <h2 className="mt-6 text-xl">Domínios</h2>
-              <p className="mb-2 max-w-prose text-xs opacity-90">
-                Somente funciona como metadados. Não altera os arquivos gerados.
-              </p>
-            </span>
-            <span className="flex flex-col gap-1">
-              {fieldsDomains.map((field, index) => (
-                <div className="flex w-full flex-col gap-1" key={field.id}>
-                  <div className="flex w-full gap-1">
-                    <button
-                      className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                      type="button"
-                      onClick={() => removeDomains(index)}
-                      title={`Remover domínio ${field.value || "vazio"}`}
-                    >
-                      <Minus size={20} />
-                    </button>
-                    <input
-                      className="block h-full rounded-sm bg-zinc-200/5 p-2 focus-visible:bg-zinc-200/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                      key={field.id}
-                      {...register(`deployDomains.${index}.value`)}
-                    />
-                  </div>
-                  <span className="pb-1 text-sm text-red-500">
-                    <ErrorMessage
-                      message={errors.deployDomains?.[index]?.value?.message}
-                    />
-                  </span>
+          <span className="mb-6 block">
+            <h2 className="-ml-2 mt-6 text-xl">Domínios</h2>
+            <p className="max-w-prose text-sm leading-6 text-zinc-300">
+              Os domínios relacionados ao deploy serve, como metadados e
+              facilitadores da próxima etapa.
+            </p>
+          </span>
+          <span className="flex flex-col gap-1">
+            {fieldsDomains.map((field, index) => (
+              <div className="flex w-full flex-col gap-1" key={field.id}>
+                <div className="flex w-full gap-1">
+                  <button
+                    className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                    type="button"
+                    onClick={() => removeDomains(index)}
+                    title={`Remover domínio ${field.value || "vazio"}`}
+                  >
+                    <Minus size={20} />
+                  </button>
+                  <Input
+                    className="block h-full"
+                    key={field.id}
+                    {...register(`deployDomains.${index}.value`)}
+                  />
                 </div>
-              ))}
-            </span>
-            <button
-              className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-              type="button"
-              onClick={() => appendDomains({ value: "" })}
-            >
-              <Plus size={20} />
-            </button>
-            <ErrorMessage message={errors.deployDomains?.message} />
+                <span className="pb-1 text-sm text-red-500">
+                  <ErrorMessage
+                    message={errors.deployDomains?.[index]?.value?.message}
+                  />
+                </span>
+              </div>
+            ))}
+          </span>
+          <button
+            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+            type="button"
+            onClick={() => appendDomains({ value: "" })}
+          >
+            <Plus size={20} />
+          </button>
 
-            <span>
-              <h2 className="mt-6 text-xl">Serviços</h2>
-              <p className="mb-2 max-w-prose text-xs opacity-90">Desc</p>
-            </span>
+          <div className="-mx-8 my-8 border-b border-zinc-600" />
+
+          <span className="mb-6 block">
+            <h2 className="-ml-2 text-xl">Serviços *</h2>
+            <p className="max-w-prose text-sm leading-6 text-zinc-300">
+              Adicione e Configure os serviços que devem estar presentes no
+              docker-compose
+            </p>
+          </span>
+          <ul>
             {fieldsServices.map((field, index) => {
               const error =
                 errors.services?.[index]?.root || errors.services?.[index];
@@ -493,12 +565,11 @@ export default function FormPage() {
               const errMessage =
                 error?.type === "invalid_literal"
                   ? "Service needs to be either exposed or internal"
-                  : error?.message;
+                  : undefined;
 
               return (
-                <>
+                <li key={field.id} className="flex flex-col">
                   <Service
-                    key={field.id}
                     index={index}
                     errors={errors}
                     register={register}
@@ -508,37 +579,30 @@ export default function FormPage() {
                   />
 
                   <ErrorMessage message={errMessage} />
-                </>
+                </li>
               );
             })}
-
-            <button
-              className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-              type="button"
-              onClick={() =>
-                appendServices({
-                  name: "",
-                  dockerImage: "",
-                  hasInternalNetwork: false,
-                  environmentVariables: [],
-                  hasExposedConfig: true,
-                  exposedConfig: {
-                    rule: `Host(${watch("deployDomains")
-                      .map((d) => `\`${d.value}\``)
-                      .join(", ")})`,
-                    hasCertificate: false,
-                  },
-                })
-              }
-            >
-              <Plus size={20} />
-            </button>
-            <ErrorMessage
-              message={
-                errors.services?.message || errors.services?.root?.message
-              }
-            />
-          </div>
+          </ul>
+          <br />
+          <button
+            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+            type="button"
+            onClick={() =>
+              appendServices({
+                name: "",
+                dockerImage: "",
+                hasInternalNetwork: true,
+                environmentVariables: [],
+                hasExposedConfig: false,
+              })
+            }
+          >
+            <Plus size={20} />
+          </button>
+          <br />
+          <ErrorMessage
+            message={errors.services?.message || errors.services?.root?.message}
+          />
 
           <button
             type="submit"
@@ -566,8 +630,4 @@ export default function FormPage() {
       </form>
     </main>
   );
-}
-
-function ErrorMessage({ message }: { message: string | undefined }) {
-  return <span className="h-6 pb-1 text-sm text-red-500">{message}</span>;
 }
