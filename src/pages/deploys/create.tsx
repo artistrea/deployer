@@ -105,8 +105,9 @@ export default function FormPage() {
         });
 
         return (
-          <div className="flex w-full gap-1">
+          <div className="flex w-full gap-6">
             <button
+              title="Remover Serviço"
               className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
               type="button"
               onClick={() => removeServices(index)}
@@ -141,12 +142,13 @@ export default function FormPage() {
               />
 
               <p className="mb-1 mt-2">Variáveis de Ambiente</p>
-              <div className="flex flex-col gap-1 pl-8">
+              <ul className="flex flex-col gap-1 pl-8">
                 {fieldsEnvironment.map((f, i) => (
-                  <div className="flex w-full gap-1" key={f.id}>
+                  <li className="flex w-full gap-1" key={f.id}>
                     <button
                       className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                       type="button"
+                      title="Remover Variável de Ambiente"
                       onClick={() => removeEnvironment(i)}
                     >
                       <Minus size={20} />
@@ -183,11 +185,12 @@ export default function FormPage() {
                         />
                       </span>
                     </div>
-                  </div>
+                  </li>
                 ))}
                 <button
                   className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                   type="button"
+                  title="Adicionar Variável de Ambiente"
                   onClick={() => appendEnvironment({ key: "", value: "" })}
                 >
                   <Plus size={20} />
@@ -199,7 +202,7 @@ export default function FormPage() {
                       ?.message
                   }
                 />
-              </div>
+              </ul>
 
               <Label
                 className="my-2"
@@ -397,16 +400,14 @@ export default function FormPage() {
                       <p className="mt-1 text-sm">
                         Subdomínios que também precisam:
                       </p>
-                      <span className="flex flex-col gap-1 pl-8">
+                      <ul className="flex flex-col gap-1 pl-8">
                         {fieldsCertificateSubDomains.map((f, i) => (
-                          <div
-                            className="flex w-full flex-col gap-1"
-                            key={f.id}
-                          >
+                          <li className="flex w-full flex-col gap-1" key={f.id}>
                             <div className="flex w-full gap-1">
                               <button
                                 className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                                 type="button"
+                                title="Remover Subdomínio do certificado"
                                 onClick={() =>
                                   removeCertificateSubDomains(index)
                                 }
@@ -439,18 +440,19 @@ export default function FormPage() {
                                 }
                               />
                             </div>
-                          </div>
+                          </li>
                         ))}
                         <button
                           className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                           type="button"
+                          title="Adicionar Subdomínio para o certificado"
                           onClick={() =>
                             appendCertificateSubDomains({ value: "" })
                           }
                         >
                           <Plus size={20} />
                         </button>
-                      </span>
+                      </ul>
                     </div>
                   </fieldset>
                 </div>
@@ -514,15 +516,15 @@ export default function FormPage() {
               facilitadores da próxima etapa.
             </p>
           </span>
-          <span className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-1">
             {fieldsDomains.map((field, index) => (
-              <div className="flex w-full flex-col gap-1" key={field.id}>
+              <li className="flex w-full flex-col gap-1" key={field.id}>
                 <div className="flex w-full gap-1">
                   <button
                     className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                     type="button"
                     onClick={() => removeDomains(index)}
-                    title={`Remover domínio ${field.value || "vazio"}`}
+                    title="Remover domínio"
                   >
                     <Minus size={20} />
                   </button>
@@ -532,18 +534,18 @@ export default function FormPage() {
                     {...register(`deployDomains.${index}.value`)}
                   />
                 </div>
-                <span className="pb-1 text-sm text-red-500">
-                  <ErrorMessage
-                    message={errors.deployDomains?.[index]?.value?.message}
-                  />
-                </span>
-              </div>
+                <ErrorMessage
+                  message={errors.deployDomains?.[index]?.value?.message}
+                />
+              </li>
             ))}
-          </span>
+          </ul>
+          <br />
           <button
             className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
             type="button"
             onClick={() => appendDomains({ value: "" })}
+            title="Adicionar Domínio"
           >
             <Plus size={20} />
           </button>
@@ -587,6 +589,7 @@ export default function FormPage() {
           <button
             className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
             type="button"
+            title="Adicionar Serviço"
             onClick={() =>
               appendServices({
                 name: "",
