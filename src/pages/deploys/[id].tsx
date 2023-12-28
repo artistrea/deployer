@@ -78,7 +78,16 @@ function serviceTemplate(
       - traefik.http.routers.${name}-router-websecure.rule=${exposedConfig.rule}
       - traefik.http.routers.${name}-router-websecure.entrypoints=websecure
       - traefik.http.routers.${name}-router-websecure.tls=true
-
+${
+  !exposedConfig.port
+    ? ""
+    : `
+      # # Specify to container port
+      - traefik.http.routers.${name}-router-websecure.service=${name}-router-service
+      - traefik.http.routers.${name}-router.service=${name}-router-service
+      - traefik.http.services.${name}-router-service.loadbalancer.server.port=${exposedConfig.port}
+`
+}
       # # redirect http to https
 
       - traefik.http.middlewares.${name}-router-redirect-to-websecure.redirectscheme.scheme=https
