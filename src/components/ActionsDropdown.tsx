@@ -1,5 +1,5 @@
 import { WalletCards, X } from "lucide-react";
-import { MouseEventHandler, PropsWithChildren } from "react";
+import type { MouseEventHandler, PropsWithChildren } from "react";
 
 import {
   DropdownMenu,

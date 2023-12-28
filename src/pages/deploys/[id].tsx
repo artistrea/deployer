@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { RouterOutputs, api } from "~/utils/api";
+import { type RouterOutputs, api } from "~/utils/api";
 import Prism from "prismjs";
 import "prismjs/components/prism-yaml";
 import { useEffect } from "react";
@@ -157,10 +157,7 @@ export default function DeployPage() {
   });
 
   useEffect(() => {
-    const highlight = async () => {
-      await Prism.highlightAll(); // <--- prepare Prism
-    };
-    highlight(); // <--- call the async function
+    Prism.highlightAll();
   }, [deploy]);
 
   const dockerCompose = generateDockerComposeTemplate(deploy);

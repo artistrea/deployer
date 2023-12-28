@@ -1,4 +1,4 @@
-export const registerService = <T extends any, N extends string>(
+export const registerService = <T, N extends string>(
   name: N,
   initFn: () => T,
 ): T => {

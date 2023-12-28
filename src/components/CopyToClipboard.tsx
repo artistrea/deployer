@@ -1,5 +1,5 @@
-import { ClassValue } from "clsx";
-import { CheckSquare, Copy, CopyCheck } from "lucide-react";
+import type { ClassValue } from "clsx";
+import { CheckSquare, Copy } from "lucide-react";
 import { useState } from "react";
 import { cn } from "~/utils/cn";
 
@@ -14,7 +14,7 @@ export function CopyToClipboard({ textToCopy, className }: Props) {
   return (
     <button
       onClick={() => {
-        navigator.clipboard.writeText(textToCopy);
+        void navigator.clipboard.writeText(textToCopy);
         setJustCopied(true);
         setTimeout(() => setJustCopied(false), 2000);
       }}
