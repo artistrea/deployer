@@ -8,7 +8,10 @@ type LabelProps = DetailedHTMLProps<
 
 export function Label({ children, className, ...htmlProps }: LabelProps) {
   return (
-    <label {...htmlProps} className={cn("block text-sm leading-6", className)}>
+    <label
+      {...htmlProps}
+      className={cn("block text-sm leading-6 text-white/80", className)}
+    >
       {children}
     </label>
   );

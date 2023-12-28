@@ -23,6 +23,7 @@ import { ErrorMessage } from "~/components/forms/ErrorMessage";
 import { Input } from "~/components/forms/Input";
 import { Label } from "~/components/forms/Label";
 import { TextArea } from "~/components/forms/TextArea";
+import { ActionsDropdown } from "~/components/ActionsDropdown";
 
 export default function FormPage() {
   const {
@@ -62,6 +63,141 @@ export default function FormPage() {
     control, // control props comes from useForm (optional: if you are using FormContext)
     name: "services", // unique name for your Field Array
   });
+
+  const actionGroups = [
+    [
+      {
+        text: "Sem Template",
+        onClick: () => {
+          appendServices({
+            name: "",
+            dockerImage: "",
+            hasInternalNetwork: true,
+            environmentVariables: [],
+            hasExposedConfig: false,
+          });
+        },
+      },
+    ],
+    [
+      {
+        text: "Rails API + psql",
+        onClick: () => {
+          appendServices(
+            [
+              {
+                name: "db",
+                dockerImage: "postgres:16.1-alpine3.19",
+                hasInternalNetwork: true,
+                environmentVariables: [
+                  { key: "POSTGRES_DB", value: "{{ nome-do-db }}" },
+                  { key: "POSTGRES_USER", value: "{{ user-do-db }}" },
+                  { key: "POSTGRES_PASSWORD", value: "{{ senha-do-db }}" },
+                  { key: "PGDATA", value: "/var/lib/postgresql/data/" },
+                ],
+                hasExposedConfig: false,
+                // volumes:
+                // - pg_data:/var/lib/postgresql/data/
+              },
+              {
+                name: "{{ nome-do-projeto }}-api",
+                dockerImage: "structej/projetos:{{ nome-do-projeto }}-api-v.x",
+                hasInternalNetwork: true,
+                dependsOn: "db",
+                environmentVariables: [
+                  { key: "DATABASE", value: "{{ nome-do-db }}" },
+                  { key: "DATABASE_USERNAME", value: "{{ user-do-db }}" },
+                  { key: "DATABASE_PASSWORD", value: "{{ senha-do-db }}" },
+                ],
+                hasExposedConfig: true,
+                exposedConfig: {
+                  rule: `Host(${fieldsDomains
+                    .map((d) => `\`${d.value}\``)
+                    .join(
+                      " ",
+                    )}) && ( PathPrefix(\`/rails\`) || PathPrefix(\`/api\`) )`,
+                  hasCertificate: false,
+                  port: 3000,
+                },
+                // for active storage files:
+                // volumes:
+                // - project_data:/app/storage/
+              },
+            ],
+            { shouldFocus: false },
+          );
+        },
+      },
+      {
+        text: "Next JS + MySQL",
+        onClick: () => {
+          appendServices(
+            [
+              {
+                name: "db",
+                dockerImage: "mysql:8",
+                hasInternalNetwork: true,
+                environmentVariables: [
+                  { key: "MYSQL_DATABASE", value: "{{ nome-do-db }}" },
+                  { key: "MYSQL_USER", value: "{{ user-do-db }}" },
+                  { key: "MYSQL_PASSWORD", value: "{{ senha-do-db }}" },
+                ],
+                hasExposedConfig: false,
+                // volumes:
+                // - db:/var/lib/mysql
+              },
+              {
+                name: "{{ nome-do-projeto }}",
+                dockerImage: "structej/projetos:{{ nome-do-projeto }}-v.x",
+                hasInternalNetwork: true,
+                dependsOn: "db",
+                environmentVariables: [
+                  {
+                    key: "DATABASE_URL",
+                    value:
+                      "mysql://{{ user-do-db }}:{{ senha-do-db }}@db:3306/{{ nome-do-db }}",
+                  },
+                ],
+                hasExposedConfig: true,
+                exposedConfig: {
+                  rule: `Host(${fieldsDomains
+                    .map((d) => `\`${d.value}\``)
+                    .join(" ")})`,
+                  hasCertificate: false,
+                  port: 3000,
+                },
+              },
+            ],
+            { shouldFocus: false },
+          );
+        },
+      },
+      {
+        text: "Static Asset Server",
+        onClick: () => {
+          appendServices(
+            {
+              name: "{{ nome-do-projeto }}",
+              dockerImage: "structej/projetos:{{ nome-do-projeto }}-front-v.x",
+              hasInternalNetwork: false,
+              environmentVariables: [],
+              hasExposedConfig: true,
+              exposedConfig: {
+                rule: `Host(${fieldsDomains
+                  .map((d) => `\`${d.value}\``)
+                  .join(
+                    " ",
+                  )}) && !PathPrefix(\`/api\`) && !PathPrefix(\`/rails\`)`,
+                hasCertificate: false,
+              },
+            },
+            { shouldFocus: false },
+          );
+        },
+      },
+    ],
+  ];
+
   type ServiceProps = {
     index: number;
     removeServices: typeof removeServices;
@@ -586,22 +722,18 @@ export default function FormPage() {
             })}
           </ul>
           <br />
-          <button
-            className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-            type="button"
-            title="Adicionar Serviço"
-            onClick={() =>
-              appendServices({
-                name: "",
-                dockerImage: "",
-                hasInternalNetwork: true,
-                environmentVariables: [],
-                hasExposedConfig: false,
-              })
-            }
+          <ActionsDropdown
+            title="Escolha um template"
+            actionGroups={actionGroups}
           >
-            <Plus size={20} />
-          </button>
+            <button
+              className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+              type="button"
+              title="Adicionar Serviço"
+            >
+              <Plus size={20} />
+            </button>
+          </ActionsDropdown>
           <br />
           <ErrorMessage
             message={errors.services?.message || errors.services?.root?.message}
