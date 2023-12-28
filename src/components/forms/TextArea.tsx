@@ -1,4 +1,7 @@
-import React, { DetailedHTMLProps, TextareaHTMLAttributes } from "react";
+import React, {
+  type DetailedHTMLProps,
+  type TextareaHTMLAttributes,
+} from "react";
 import { cn } from "~/utils/cn";
 
 export const TextArea = React.forwardRef<

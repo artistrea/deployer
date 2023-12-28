@@ -1,4 +1,4 @@
-import { FolderCog, Settings } from "lucide-react";
+import { FolderCog } from "lucide-react";
 import Head from "next/head";
 import Link from "next/link";
 import { api } from "~/utils/api";

@@ -56,7 +56,7 @@ async function seed() {
     ])
   )[0].insertId;
 
-  db.insert(serviceDependsOn).values({
+  await db.insert(serviceDependsOn).values({
     dependantId: firstServiceId + 1,
     dependsOnId: firstServiceId + 2,
   });

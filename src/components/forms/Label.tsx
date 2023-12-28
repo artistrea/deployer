@@ -1,4 +1,4 @@
-import React, { DetailedHTMLProps, LabelHTMLAttributes } from "react";
+import React, { type DetailedHTMLProps, type LabelHTMLAttributes } from "react";
 import { cn } from "~/utils/cn";
 
 type LabelProps = DetailedHTMLProps<

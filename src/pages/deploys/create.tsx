@@ -1,20 +1,15 @@
 import {
   useForm,
-  SubmitHandler,
+  type SubmitHandler,
   useFieldArray,
-  FieldErrors,
+  type FieldErrors,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Minus, Plus, Rocket } from "lucide-react";
-import React, {
-  DetailedHTMLProps,
-  InputHTMLAttributes,
-  LabelHTMLAttributes,
-  useMemo,
-} from "react";
+import React, { useMemo } from "react";
 import { cn } from "~/utils/cn";
 import {
-  CreateDeploySchema,
+  type CreateDeploySchema,
   createDeploySchema,
 } from "~/validations/createDeploy";
 import { api } from "~/utils/api";
@@ -43,7 +38,7 @@ export default function FormPage() {
   const onSubmit: SubmitHandler<CreateDeploySchema> = async (data) => {
     await createDeploy(data)
       .then((deployId) => router.push(`/deploys/${deployId}`))
-      .catch((err) => alert(err.message));
+      .catch((err) => err instanceof Error && alert(err.message));
   };
 
   const {
@@ -500,8 +495,10 @@ export default function FormPage() {
                     type="number"
                     {...register(`services.${index}.exposedConfig.port`, {
                       setValueAs(value) {
-                        if (value === "") return undefined;
-                        return parseInt(value, 10);
+                        if ((value as string) === "") return undefined;
+                        if (typeof value === "string")
+                          return parseInt(value, 10);
+                        return undefined;
                       },
                     })}
                   />
@@ -674,7 +671,7 @@ export default function FormPage() {
       <form
         className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-2 p-8"
         onSubmit={(e) => {
-          handleSubmit(onSubmit)(e);
+          void handleSubmit(onSubmit)(e);
         }}
       >
         <div className="-ml-2 mb-6">
@@ -766,7 +763,7 @@ export default function FormPage() {
           <ul>
             {fieldsServices.map((field, index) => {
               const error =
-                errors.services?.[index]?.root || errors.services?.[index];
+                errors.services?.[index]?.root ?? errors.services?.[index];
 
               const errMessage =
                 error?.type === "invalid_literal"
@@ -804,7 +801,7 @@ export default function FormPage() {
           </ActionsDropdown>
           <br />
           <ErrorMessage
-            message={errors.services?.message || errors.services?.root?.message}
+            message={errors.services?.message ?? errors.services?.root?.message}
           />
 
           <button
