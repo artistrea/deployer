@@ -10,6 +10,7 @@ import {
   environmentVariables,
   exposedConfigs,
   serviceDependsOn,
+  serviceVolumes,
   services,
 } from "~/server/db/schema";
 import { createDeploySchema } from "~/validations/createDeploy";
@@ -45,6 +46,16 @@ export const deployRouter = createTRPCRouter({
             })),
           )
         )[0].insertId;
+
+        const volumesToInsert = input.services.flatMap((s, i) =>
+          s.volumes.map((v) => ({
+            serviceId: firstServiceId + i,
+            value: v.value,
+          })),
+        );
+
+        if (volumesToInsert.length)
+          await tx.insert(serviceVolumes).values(volumesToInsert);
 
         const environmentVariablesToInsert = input.services.flatMap((s, i) =>
           s.environmentVariables.map((e) => ({

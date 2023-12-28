@@ -35,6 +35,11 @@ const serviceSchema = z.union([
         value: z.string().min(1).max(256),
       }),
     ),
+    volumes: z.array(
+      z.object({
+        value: z.string().min(1).max(256),
+      }),
+    ),
   }),
   z.object({
     name: z.string().min(1).max(32),
@@ -45,6 +50,11 @@ const serviceSchema = z.union([
     environmentVariables: z.array(
       z.object({
         key: z.string().min(1).max(64),
+        value: z.string().min(1).max(256),
+      }),
+    ),
+    volumes: z.array(
+      z.object({
         value: z.string().min(1).max(256),
       }),
     ),
@@ -59,6 +69,11 @@ const serviceSchema = z.union([
     environmentVariables: z.array(
       z.object({
         key: z.string().min(1).max(64),
+        value: z.string().min(1).max(256),
+      }),
+    ),
+    volumes: z.array(
+      z.object({
         value: z.string().min(1).max(256),
       }),
     ),
@@ -87,7 +102,7 @@ export const createDeploySchema = z
       });
     }
 
-    const a = val.services.forEach((s, i) => {
+    val.services.forEach((s, i) => {
       if (!s.hasInternalNetwork || !s.dependsOn) return false;
       const dependsOnServiceIndex = val.services.findIndex(
         (s2) => s2.name === s.dependsOn,

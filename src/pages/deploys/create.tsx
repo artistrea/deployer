@@ -75,6 +75,7 @@ export default function FormPage() {
             hasInternalNetwork: true,
             environmentVariables: [],
             hasExposedConfig: false,
+            volumes: [],
           });
         },
       },
@@ -96,8 +97,11 @@ export default function FormPage() {
                   { key: "PGDATA", value: "/var/lib/postgresql/data/" },
                 ],
                 hasExposedConfig: false,
-                // volumes:
-                // - pg_data:/var/lib/postgresql/data/
+                volumes: [
+                  {
+                    value: "pg_data:/var/lib/postgresql/data/",
+                  },
+                ],
               },
               {
                 name: "{{ nome-do-projeto }}-api",
@@ -109,19 +113,17 @@ export default function FormPage() {
                   { key: "DATABASE_USERNAME", value: "{{ user-do-db }}" },
                   { key: "DATABASE_PASSWORD", value: "{{ senha-do-db }}" },
                 ],
+                volumes: [
+                  {
+                    value: "project_data:/app/storage/",
+                  },
+                ],
                 hasExposedConfig: true,
                 exposedConfig: {
-                  rule: `Host(${fieldsDomains
-                    .map((d) => `\`${d.value}\``)
-                    .join(
-                      " ",
-                    )}) && ( PathPrefix(\`/rails\`) || PathPrefix(\`/api\`) )`,
+                  rule: `Host(\`\`) && ( PathPrefix(\`/rails\`) || PathPrefix(\`/api\`) )`,
                   hasCertificate: false,
                   port: 3000,
                 },
-                // for active storage files:
-                // volumes:
-                // - project_data:/app/storage/
               },
             ],
             { shouldFocus: false },
@@ -143,8 +145,11 @@ export default function FormPage() {
                   { key: "MYSQL_PASSWORD", value: "{{ senha-do-db }}" },
                 ],
                 hasExposedConfig: false,
-                // volumes:
-                // - db:/var/lib/mysql
+                volumes: [
+                  {
+                    value: "db_data:/var/lib/mysql",
+                  },
+                ],
               },
               {
                 name: "{{ nome-do-projeto }}",
@@ -157,15 +162,26 @@ export default function FormPage() {
                     value:
                       "mysql://{{ user-do-db }}:{{ senha-do-db }}@db:3306/{{ nome-do-db }}",
                   },
+                  {
+                    key: "NEXTAUTH_SECRET",
+                    value: "?",
+                  },
+                  {
+                    key: "GOOGLE_CLIENT_ID",
+                    value: "?",
+                  },
+                  {
+                    key: "GOOGLE_CLIENT_SECRET",
+                    value: "?",
+                  },
                 ],
                 hasExposedConfig: true,
                 exposedConfig: {
-                  rule: `Host(${fieldsDomains
-                    .map((d) => `\`${d.value}\``)
-                    .join(" ")})`,
+                  rule: `Host(\`\`)`,
                   hasCertificate: false,
                   port: 3000,
                 },
+                volumes: [],
               },
             ],
             { shouldFocus: false },
@@ -190,6 +206,7 @@ export default function FormPage() {
                   )}) && !PathPrefix(\`/api\`) && !PathPrefix(\`/rails\`)`,
                 hasCertificate: false,
               },
+              volumes: [],
             },
             { shouldFocus: false },
           );
@@ -229,6 +246,15 @@ export default function FormPage() {
         } = useFieldArray({
           control, // control props comes from useForm (optional: if you are using FormContext)
           name: `services.${index}.environmentVariables`, // unique name for your Field Array
+        });
+
+        const {
+          fields: fieldsVolumes,
+          append: appendVolumes,
+          remove: removeVolumes,
+        } = useFieldArray({
+          control, // control props comes from useForm (optional: if you are using FormContext)
+          name: `services.${index}.volumes`, // unique name for your Field Array
         });
 
         const {
@@ -323,22 +349,64 @@ export default function FormPage() {
                     </div>
                   </li>
                 ))}
-                <button
-                  className="mr-auto rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-                  type="button"
-                  title="Adicionar Variável de Ambiente"
-                  onClick={() => appendEnvironment({ key: "", value: "" })}
-                >
-                  <Plus size={20} />
-                </button>
-
-                <ErrorMessage
-                  message={
-                    errors.services?.[index]?.environmentVariables?.root
-                      ?.message
-                  }
-                />
               </ul>
+              <button
+                className="ml-8 mr-auto mt-1 rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                type="button"
+                title="Adicionar Variável de Ambiente"
+                onClick={() => appendEnvironment({ key: "", value: "" })}
+              >
+                <Plus size={20} />
+              </button>
+
+              <ErrorMessage
+                message={
+                  errors.services?.[index]?.environmentVariables?.root?.message
+                }
+              />
+
+              <p className="mb-1 mt-2">Volumes do Container</p>
+              <ul className="flex flex-col gap-1 pl-8">
+                {fieldsVolumes.map((f, i) => (
+                  <li className="flex w-full gap-1" key={f.id}>
+                    <button
+                      className="rounded bg-red-400/10 p-1 text-red-400 hover:bg-red-400/20 focus-visible:bg-red-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                      type="button"
+                      title="Remover Variável de Ambiente"
+                      onClick={() => removeVolumes(i)}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <div className="flex w-full flex-col gap-1">
+                      <span className="flex w-full items-center gap-2">
+                        <Input
+                          className="w-1/2"
+                          placeholder="Value *"
+                          {...register(`services.${index}.volumes.${i}.value`)}
+                        />
+                        <ErrorMessage
+                          message={
+                            errors.services?.[index]?.volumes?.[i]?.value
+                              ?.message
+                          }
+                        />
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <button
+                className="ml-8 mr-auto mt-1 rounded bg-green-400/10 p-1 text-green-400 hover:bg-green-400/20 focus-visible:bg-green-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                type="button"
+                title="Adicionar Variável de Ambiente"
+                onClick={() => appendVolumes({ value: "" })}
+              >
+                <Plus size={20} />
+              </button>
+
+              <ErrorMessage
+                message={errors.services?.[index]?.volumes?.root?.message}
+              />
 
               <Label
                 className="my-2"
@@ -356,7 +424,7 @@ export default function FormPage() {
                 </p>
               </Label>
               <fieldset
-                className="flex flex-col pl-8 disabled:opacity-30"
+                className="flex flex-col pl-8 disabled:hidden"
                 disabled={!watch(`services.${index}.hasInternalNetwork`)}
               >
                 <Label htmlFor={`services.${index}.dependsOn`}>
@@ -398,7 +466,7 @@ export default function FormPage() {
                 </p>
               </Label>
               <fieldset
-                className="pl-8 disabled:opacity-30"
+                className="pl-8 disabled:hidden"
                 disabled={!watch(`services.${index}.hasExposedConfig`)}
               >
                 <div className="flex flex-col gap-1">
@@ -469,7 +537,7 @@ export default function FormPage() {
                     disabled={
                       !watch(`services.${index}.exposedConfig.hasCertificate`)
                     }
-                    className="pl-8 disabled:opacity-30"
+                    className="pl-8 disabled:hidden"
                   >
                     <div className="flex flex-col gap-1">
                       <Label
@@ -648,8 +716,8 @@ export default function FormPage() {
           <span className="mb-6 block">
             <h2 className="-ml-2 mt-6 text-xl">Domínios</h2>
             <p className="max-w-prose text-sm leading-6 text-zinc-300">
-              Os domínios relacionados ao deploy serve, como metadados e
-              facilitadores da próxima etapa.
+              Os domínios relacionados ao deploy servem como metadados neste
+              site apenas.
             </p>
           </span>
           <ul className="flex flex-col gap-1">
