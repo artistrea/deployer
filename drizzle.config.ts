@@ -9,4 +9,6 @@ export default {
     connectionString: env.DATABASE_URL,
   },
   tablesFilter: ["deployer_*"],
+  out: "drizzle",
+  breakpoints: false,
 } satisfies Config;
