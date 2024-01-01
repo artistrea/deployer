@@ -8,7 +8,7 @@
     "resolveJsonModule": true,
     "moduleDetection": "force",
     "isolatedModules": true,
-    "noErrorTruncation": true,
+    // "noErrorTruncation": true,
 
     /* Strictness */
     "strict": true,

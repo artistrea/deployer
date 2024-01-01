@@ -47,7 +47,7 @@ export default function FormPage() {
     remove: removeDomains,
   } = useFieldArray({
     control, // control props comes from useForm (optional: if you are using FormContext)
-    name: "deployDomains", // unique name for your Field Array
+    name: "domains", // unique name for your Field Array
   });
 
   const {
@@ -732,11 +732,11 @@ export default function FormPage() {
                   <Input
                     className="block h-full"
                     key={field.id}
-                    {...register(`deployDomains.${index}.value`)}
+                    {...register(`domains.${index}.value`)}
                   />
                 </div>
                 <ErrorMessage
-                  message={errors.deployDomains?.[index]?.value?.message}
+                  message={errors.domains?.[index]?.value?.message}
                 />
               </li>
             ))}

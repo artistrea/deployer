@@ -8,61 +8,48 @@ import { CopyToClipboard } from "~/components/CopyToClipboard";
 
 type Deploy = NonNullable<RouterOutputs["deploy"]["get"]>;
 
-function serviceTemplate(
-  {
-    dockerImage,
-    name,
-    exposedConfig,
-    environmentVariables,
-    dependsOn,
-    hasInternalNetwork,
-    volumes,
-  }: Deploy["services"][number],
-  deploy: Deploy,
-) {
+function serviceTemplate(service: Deploy["services"][number]) {
   return `
-  ${name}:
-    image: ${dockerImage}
+  ${service.name}:
+    image: ${service.dockerImage}
     restart: always
     networks:${
-      !hasInternalNetwork
+      !service.hasInternalNetwork
         ? ""
         : `
       - internal`
     }${
-      !exposedConfig
+      !service.hasExposedConfig
         ? ""
         : `
       - proxy`
     }${
-      !dependsOn.length
+      !service.hasInternalNetwork || !service.dependsOn
         ? ""
         : `
-    depends_on:${dependsOn.reduce(
-      (p, d) => `${p}
-      - ${deploy.services.find((s) => s.id === d.dependsOnId)?.name}`,
-      "",
+    depends_on:
+      - ${service.dependsOn}
     )}`
     }${
-      !volumes.length
+      !service.volumes.length
         ? ""
         : `
-    volumes:${volumes.reduce(
+    volumes:${service.volumes.reduce(
       (pr, volume) => `${pr}
       - ${volume.value}`,
       "",
     )}`
     }${
-      !environmentVariables.length
+      !service.environmentVariables.length
         ? ""
         : `
-    environment:${environmentVariables.reduce(
+    environment:${service.environmentVariables.reduce(
       (prev, k) => `${prev}
       ${k.key}: ${k.value}`,
       "",
     )}`
     }${
-      !exposedConfig
+      !service.hasExposedConfig
         ? ""
         : `
     labels:
@@ -70,49 +57,65 @@ function serviceTemplate(
       - traefik.docker.network=proxy
 
       # # http access
-      - traefik.http.routers.${name}-router.rule=${exposedConfig.rule}
-      - traefik.http.routers.${name}-router.entrypoints=web
+      - traefik.http.routers.${service.name}-router.rule=${
+        service.exposedConfig.rule
+      }
+      - traefik.http.routers.${service.name}-router.entrypoints=web
 
       # # https access
 
-      - traefik.http.routers.${name}-router-websecure.rule=${exposedConfig.rule}
-      - traefik.http.routers.${name}-router-websecure.entrypoints=websecure
-      - traefik.http.routers.${name}-router-websecure.tls=true
+      - traefik.http.routers.${service.name}-router-websecure.rule=${
+        service.exposedConfig.rule
+      }
+      - traefik.http.routers.${
+        service.name
+      }-router-websecure.entrypoints=websecure
+      - traefik.http.routers.${service.name}-router-websecure.tls=true
 ${
-  !exposedConfig.port
+  !service.exposedConfig.port
     ? ""
     : `
       # # Specify to container port
-      - traefik.http.routers.${name}-router-websecure.service=${name}-router-service
-      - traefik.http.routers.${name}-router.service=${name}-router-service
-      - traefik.http.services.${name}-router-service.loadbalancer.server.port=${exposedConfig.port}
+      - traefik.http.routers.${service.name}-router-websecure.service=${service.name}-router-service
+      - traefik.http.routers.${service.name}-router.service=${service.name}-router-service
+      - traefik.http.services.${service.name}-router-service.loadbalancer.server.port=${service.exposedConfig.port}
 `
 }
       # # redirect http to https
 
-      - traefik.http.middlewares.${name}-router-redirect-to-websecure.redirectscheme.scheme=https
-      - traefik.http.routers.${name}-router.middlewares=${name}-router-redirect-to-websecure
+      - traefik.http.middlewares.${
+        service.name
+      }-router-redirect-to-websecure.redirectscheme.scheme=https
+      - traefik.http.routers.${service.name}-router.middlewares=${
+        service.name
+      }-router-redirect-to-websecure
 ${
-  !exposedConfig.certificate
+  !service.exposedConfig.hasCertificate
     ? ""
     : `
       # # certResolver pra quando precisar gerar certificado por aqui:
       # # Ver traefik.yml para ver a configuracao do challenge:
       
-      - traefik.http.routers.${name}-router-websecure.tls.certResolver=${
-        exposedConfig.certificate.name
+      - traefik.http.routers.${
+        service.name
+      }-router-websecure.tls.certResolver=${
+        service.exposedConfig.certificate.name
       }
       
       # # Domains that need certificate:
-      - traefik.http.routers.${name}-router-websecure.tls.domains[0].main=${
-        exposedConfig.certificate.forDomain
+      - traefik.http.routers.${
+        service.name
+      }-router-websecure.tls.domains[0].main=${
+        service.exposedConfig.certificate.forDomain
       }${
-        !exposedConfig.certificate.forSubDomains.length
+        !service.exposedConfig.certificate.forSubDomains.length
           ? ""
           : `
-      - traefik.http.routers.${name}-router-websecure.tls.domains[0].sans=${exposedConfig.certificate.forSubDomains
-        .map((sbd) => sbd.value)
-        .join(",")}`
+      - traefik.http.routers.${
+        service.name
+      }-router-websecure.tls.domains[0].sans=${service.exposedConfig.certificate.forSubDomains.join(
+        ",",
+      )}`
       }`
 }`
     }
@@ -122,13 +125,11 @@ ${
 function generateDockerComposeTemplate(deploy: RouterOutputs["deploy"]["get"]) {
   if (!deploy) return "";
 
-  let allVolumes = deploy.services
-    .reduce(
-      (prev, s) =>
-        s.volumes ? [...prev, ...s.volumes.map((v) => v.value)] : prev,
-      [] as string[],
-    )
-    .map((v) => v.substring(0, v.indexOf(":")));
+  let allVolumes = deploy.services.flatMap((s) =>
+    s.volumes
+      .map((vol) => vol.value.substring(0, vol.value.indexOf(":")))
+      .filter((v) => !v.startsWith("./") && !v.startsWith("/")),
+  );
 
   allVolumes = allVolumes.filter((v, i) => allVolumes.indexOf(v) === i);
 
@@ -141,7 +142,7 @@ networks:
   proxy:
     external: true
 
-services:${deploy.services.map((s) => serviceTemplate(s, deploy)).join("")}
+services:${deploy.services.map((s) => serviceTemplate(s)).join("")}
 ${
   !allVolumes.length
     ? ""

@@ -86,7 +86,7 @@ export const createDeploySchema = z
       name: z.string().min(1).max(64),
       description: z.string().min(1).max(65535),
     }),
-    deployDomains: z.array(z.object({ value: z.string().min(1).max(64) })),
+    domains: z.array(z.object({ value: z.string().min(1).max(64) })),
     services: z.array(serviceSchema).min(1),
   })
   .superRefine((val, ctx) => {

@@ -1,162 +1,120 @@
-import { db } from "./index";
 import {
-  certificateSubDomains,
-  certificates,
-  deployDomains,
-  deploys,
-  environmentVariables,
-  exposedConfigs,
-  serviceDependsOn,
-  serviceVolumes,
-  services,
-} from "./schema";
+  createDeploySchema,
+  type CreateDeploySchema,
+} from "~/validations/createDeploy";
+import { db } from "./index";
+import { deploys } from "./schema";
 
 async function seed() {
-  const deployId = (
-    await db.insert(deploys).values({
+  const deployToValidate: CreateDeploySchema = {
+    deploy: {
       name: "Site Struct",
       description: "Frontend em react, backend em rails + postgresql.",
-    })
-  )[0].insertId;
-
-  await db.insert(deployDomains).values([
-    {
-      value: "structej.com",
-      deployId,
     },
-    {
-      value: "struct.unb.br",
-      deployId,
-    },
-    {
-      value: "www.struct.unb.br",
-      deployId,
-    },
-  ]);
-
-  const firstServiceId = (
-    await db.insert(services).values([
+    domains: [
+      { value: "structej.com" },
+      { value: "struct.unb.br" },
+      { value: "www.struct.unb.br" },
+    ],
+    services: [
       {
-        deployId,
         name: "site-struct-front",
         dockerImage: "structej/projetos/site-struct-front-1.5",
+        hasExposedConfig: true,
+        hasInternalNetwork: false,
+        environmentVariables: [],
+        volumes: [],
+        exposedConfig: {
+          rule: "Host(`structej.com`, `www.structej.com`, `struct.unb.br`, `www.struct.unb.br`) && !PathPrefix(`/api`) && !PathPrefix(`/rails`)",
+          hasCertificate: true,
+          certificate: {
+            name: "struct-certresolver",
+            forDomain: "struct.unb.br",
+            forSubDomains: [{ value: "www.struct.unb.br" }],
+          },
+        },
       },
       {
-        deployId,
         name: "site-struct-api",
         dockerImage: "structej/projetos/site-struct-api-1.3",
         hasInternalNetwork: true,
+        hasExposedConfig: true,
+        environmentVariables: [
+          {
+            key: "STRUCT_DATABASE",
+            value: "site_struct_db",
+          },
+          {
+            key: "STRUCT_DATABASE_USERNAME",
+            value: "struct",
+          },
+          {
+            key: "STRUCT_DATABASE_PASSWORD",
+            value: "paodestruct",
+          },
+          {
+            key: "MAILJET_API_KEY",
+            value: "a660b332fc22ab43f1adb5a3607639e4",
+          },
+          {
+            key: "MAILJET_SECRET_KEY",
+            value: "f03833998f6cee3b3f901bd50486e835",
+          },
+          {
+            key: "SECRET_KEY_BASE",
+            value:
+              "b8972552ac6fe685cb8b11f3867e5e4046a03bb005801b916744f43b612194716d60110ab91af6c6db0d0715d901657935d3044bd2368ac315885926640ca048",
+          },
+          {
+            key: "CONTACT_EMAIL",
+            value: "comercial@struct.unb.br",
+          },
+        ],
+        volumes: [{ value: "project_data:/app/storage/" }],
+        exposedConfig: {
+          rule: "Host(`structej.com`) && ( PathPrefix(`/rails`) || PathPrefix(`/api`) )",
+          port: 3000,
+          hasCertificate: false,
+        },
       },
       {
-        deployId,
         name: "db",
         dockerImage: "postgres:10.4-alpine",
+        hasExposedConfig: false,
         hasInternalNetwork: true,
+        volumes: [{ value: "pg_data:/var/lib/postgresql/data/" }],
+        environmentVariables: [
+          {
+            key: "POSTGRES_DB",
+            value: "site_struct_db",
+          },
+          {
+            key: "POSTGRES_USER",
+            value: "struct",
+          },
+          {
+            key: "POSTGRES_PASSWORD",
+            value: "paodestruct",
+          },
+          {
+            key: "PGDATA",
+            value: "/var/lib/postgresql/data/",
+          },
+        ],
       },
-    ])
-  )[0].insertId;
+    ],
+  };
 
-  await db.insert(serviceDependsOn).values({
-    dependantId: firstServiceId + 1,
-    dependsOnId: firstServiceId + 2,
+  const result = createDeploySchema.safeParse(deployToValidate);
+
+  if (!result.success) throw new Error("Não pode criar o deploy");
+
+  await db.insert(deploys).values({
+    name: result.data.deploy.name,
+    description: result.data.deploy.description,
+    domains: result.data.domains,
+    services: result.data.services,
   });
-
-  const firstConfigId = (
-    await db.insert(exposedConfigs).values([
-      {
-        serviceId: firstServiceId,
-        rule: "Host(`structej.com`, `www.structej.com`, `struct.unb.br`, `www.struct.unb.br`) && !PathPrefix(`/api`) && !PathPrefix(`/rails`)",
-      },
-      {
-        serviceId: firstServiceId + 1,
-        rule: "Host(`structej.com`) && ( PathPrefix(`/rails`) || PathPrefix(`/api`) )",
-        port: 3000,
-      },
-    ])
-  )[0].insertId;
-
-  const certificateId = (
-    await db.insert(certificates).values({
-      exposedConfigId: firstConfigId,
-      forDomain: "struct.unb.br",
-      name: "struct-certresolver",
-    })
-  )[0].insertId;
-
-  await db.insert(certificateSubDomains).values({
-    certificateId,
-    value: "www.struct.unb.br",
-  });
-
-  await db.insert(environmentVariables).values([
-    {
-      serviceId: firstServiceId + 1,
-      key: "STRUCT_DATABASE",
-      value: "site_struct_db",
-    },
-    {
-      serviceId: firstServiceId + 1,
-      key: "STRUCT_DATABASE_USERNAME",
-      value: "struct",
-    },
-    {
-      serviceId: firstServiceId + 1,
-      key: "STRUCT_DATABASE_PASSWORD",
-      value: "paodestruct",
-    },
-    {
-      serviceId: firstServiceId + 1,
-      key: "MAILJET_API_KEY",
-      value: "a660b332fc22ab43f1adb5a3607639e4",
-    },
-    {
-      serviceId: firstServiceId + 1,
-      key: "MAILJET_SECRET_KEY",
-      value: "f03833998f6cee3b3f901bd50486e835",
-    },
-    {
-      serviceId: firstServiceId + 1,
-      key: "SECRET_KEY_BASE",
-      value:
-        "b8972552ac6fe685cb8b11f3867e5e4046a03bb005801b916744f43b612194716d60110ab91af6c6db0d0715d901657935d3044bd2368ac315885926640ca048",
-    },
-    {
-      serviceId: firstServiceId + 1,
-      key: "CONTACT_EMAIL",
-      value: "comercial@struct.unb.br",
-    },
-    {
-      serviceId: firstServiceId + 2,
-      key: "POSTGRES_DB",
-      value: "site_struct_db",
-    },
-    {
-      serviceId: firstServiceId + 2,
-      key: "POSTGRES_USER",
-      value: "struct",
-    },
-    {
-      serviceId: firstServiceId + 2,
-      key: "POSTGRES_PASSWORD",
-      value: "paodestruct",
-    },
-    {
-      serviceId: firstServiceId + 2,
-      key: "PGDATA",
-      value: "/var/lib/postgresql/data/",
-    },
-  ]);
-
-  await db.insert(serviceVolumes).values([
-    {
-      serviceId: firstServiceId + 1,
-      value: "project_data:/app/storage/",
-    },
-    {
-      serviceId: firstServiceId + 2,
-      value: "pg_data:/var/lib/postgresql/data/",
-    },
-  ]);
 }
 
 seed()
