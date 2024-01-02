@@ -138,11 +138,19 @@ export default function FormPage() {
                   { key: "MYSQL_DATABASE", value: "{{ nome-do-db }}" },
                   { key: "MYSQL_USER", value: "{{ user-do-db }}" },
                   { key: "MYSQL_PASSWORD", value: "{{ senha-do-db }}" },
+                  {
+                    key: "MYSQL_ROOT_PASSWORD",
+                    value: "{{ senha-do-user-root }}",
+                  },
                 ],
                 hasExposedConfig: false,
                 volumes: [
                   {
                     value: "db_data:/var/lib/mysql",
+                  },
+                  {
+                    // place migrations to run in the ./migrations on server
+                    value: "./migrations:/docker-entrypoint-initdb.d:ro",
                   },
                 ],
               },
@@ -158,6 +166,10 @@ export default function FormPage() {
                       "mysql://{{ user-do-db }}:{{ senha-do-db }}@db:3306/{{ nome-do-db }}",
                   },
                   {
+                    key: "NEXTAUTH_URL",
+                    value: "?",
+                  },
+                  {
                     key: "NEXTAUTH_SECRET",
                     value: "?",
                   },
@@ -168,6 +180,12 @@ export default function FormPage() {
                   {
                     key: "GOOGLE_CLIENT_SECRET",
                     value: "?",
+                  },
+                  {
+                    // necessario para que o NextJS não use como HOSTNAME um dos endereços ip
+                    // das networks. Ele pode usar o ip do db randômicamente, e dar m3rda
+                    key: "HOSTNAME",
+                    value: "0.0.0.0",
                   },
                 ],
                 hasExposedConfig: true,
