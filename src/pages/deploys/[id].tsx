@@ -1,161 +1,7 @@
 import { useRouter } from "next/router";
-import { type RouterOutputs, api } from "~/utils/api";
-import Prism from "prismjs";
-import "prismjs/components/prism-yaml";
-import { useEffect } from "react";
-import { Pencil } from "lucide-react";
-import { CopyToClipboard } from "~/components/CopyToClipboard";
-
-type Deploy = NonNullable<RouterOutputs["deploy"]["get"]>;
-
-function serviceTemplate(service: Deploy["services"][number]) {
-  return `
-  ${service.name}:
-    image: ${service.dockerImage}
-    restart: always
-    networks:${
-      !service.hasInternalNetwork
-        ? ""
-        : `
-      - internal`
-    }${
-      !service.hasExposedConfig
-        ? ""
-        : `
-      - proxy`
-    }${
-      !service.hasInternalNetwork || !service.dependsOn
-        ? ""
-        : `
-    depends_on:
-      - ${service.dependsOn}
-    )}`
-    }${
-      !service.volumes.length
-        ? ""
-        : `
-    volumes:${service.volumes.reduce(
-      (pr, volume) => `${pr}
-      - ${volume.value}`,
-      "",
-    )}`
-    }${
-      !service.environmentVariables.length
-        ? ""
-        : `
-    environment:${service.environmentVariables.reduce(
-      (prev, k) => `${prev}
-      ${k.key}: ${k.value}`,
-      "",
-    )}`
-    }${
-      !service.hasExposedConfig
-        ? ""
-        : `
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=proxy
-
-      # # http access
-      - traefik.http.routers.${service.name}-router.rule=${
-        service.exposedConfig.rule
-      }
-      - traefik.http.routers.${service.name}-router.entrypoints=web
-
-      # # https access
-
-      - traefik.http.routers.${service.name}-router-websecure.rule=${
-        service.exposedConfig.rule
-      }
-      - traefik.http.routers.${
-        service.name
-      }-router-websecure.entrypoints=websecure
-      - traefik.http.routers.${service.name}-router-websecure.tls=true
-${
-  !service.exposedConfig.port
-    ? ""
-    : `
-      # # Specify to container port
-      - traefik.http.routers.${service.name}-router-websecure.service=${service.name}-router-service
-      - traefik.http.routers.${service.name}-router.service=${service.name}-router-service
-      - traefik.http.services.${service.name}-router-service.loadbalancer.server.port=${service.exposedConfig.port}
-`
-}
-      # # redirect http to https
-
-      - traefik.http.middlewares.${
-        service.name
-      }-router-redirect-to-websecure.redirectscheme.scheme=https
-      - traefik.http.routers.${service.name}-router.middlewares=${
-        service.name
-      }-router-redirect-to-websecure
-${
-  !service.exposedConfig.hasCertificate
-    ? ""
-    : `
-      # # certResolver pra quando precisar gerar certificado por aqui:
-      # # Ver traefik.yml para ver a configuracao do challenge:
-      
-      - traefik.http.routers.${
-        service.name
-      }-router-websecure.tls.certResolver=${
-        service.exposedConfig.certificate.name
-      }
-      
-      # # Domains that need certificate:
-      - traefik.http.routers.${
-        service.name
-      }-router-websecure.tls.domains[0].main=${
-        service.exposedConfig.certificate.forDomain
-      }${
-        !service.exposedConfig.certificate.forSubDomains.length
-          ? ""
-          : `
-      - traefik.http.routers.${
-        service.name
-      }-router-websecure.tls.domains[0].sans=${service.exposedConfig.certificate.forSubDomains.join(
-        ",",
-      )}`
-      }`
-}`
-    }
-`;
-}
-
-function generateDockerComposeTemplate(deploy: RouterOutputs["deploy"]["get"]) {
-  if (!deploy) return "";
-
-  let allVolumes = deploy.services.flatMap((s) =>
-    s.volumes
-      .map((vol) => vol.value.substring(0, vol.value.indexOf(":")))
-      .filter((v) => !v.startsWith("./") && !v.startsWith("/")),
-  );
-
-  allVolumes = allVolumes.filter((v, i) => allVolumes.indexOf(v) === i);
-
-  return `version: "3.3"
-
-networks:
-  internal:
-    external: false
-  # traefik network:
-  proxy:
-    external: true
-
-services:${deploy.services.map((s) => serviceTemplate(s)).join("")}
-${
-  !allVolumes.length
-    ? ""
-    : `
-volumes:${allVolumes.reduce(
-        (pr, volume) => `${pr}
-  ${volume}:`,
-        "",
-      )}
-`
-}
-`;
-}
+import { api } from "~/utils/api";
+import Link from "next/link";
+import { cn } from "~/utils/cn";
 
 export default function DeployPage() {
   const router = useRouter();
@@ -166,36 +12,96 @@ export default function DeployPage() {
     networkMode: "always",
   });
 
-  useEffect(() => {
-    Prism.highlightAll();
-  }, [deploy]);
-
-  const dockerCompose = generateDockerComposeTemplate(deploy);
+  const { data: domainsWithStatus } = api.deploy.getDomainsWithStatus.useQuery(
+    deploy?.domains,
+  );
 
   return (
     <section className="min-h-screen flex-col bg-zinc-900 p-8 text-white sm:p-16">
       {deploy ? (
         <>
           <h1 className="text-3xl">{deploy.name}</h1>
-          <p className="text-sm text-white/70">{deploy.description}</p>
-          <div className="relative">
-            <span className="absolute right-0 top-0 z-10 flex gap-3 p-3">
-              <button className="h-10 w-10 rounded bg-yellow-400/10 p-2 text-yellow-400 hover:bg-yellow-400/20">
-                <Pencil />
+          <pre className="h-max w-full bg-transparent p-0 font-[inherit] text-sm leading-6 text-white/70">
+            {deploy.description}
+          </pre>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {!domainsWithStatus &&
+              deploy.domains.map((domain) => (
+                <li key={domain.value} className="flex text-xs">
+                  <DomainLinkWithStatus domainName={domain.value} status={-1} />
+                </li>
+              ))}
+
+            {domainsWithStatus?.map((domain) => (
+              <li key={domain.value} className="flex text-xs">
+                <DomainLinkWithStatus
+                  domainName={domain.value}
+                  status={domain.status}
+                />
+              </li>
+            ))}
+          </ul>
+          <h2 className="mt-8 text-xl">Ações</h2>
+          <ul>
+            <li>
+              <button className="m-2 rounded bg-green-400/10 px-3 py-2 text-green-400 hover:bg-green-400/20">
+                Ligar <p className="text-xs">(docker compose up -d)</p>
               </button>
-              <CopyToClipboard
-                className="rounded bg-white/10 hover:bg-white/20"
-                textToCopy={dockerCompose}
-              />
-            </span>
-            <pre className="language-yaml relative max-h-[80vh] rounded">
-              <code>{dockerCompose}</code>
-            </pre>
-          </div>
+            </li>
+            <li>
+              <button className="m-2 rounded bg-red-400/10 px-3 py-2 text-red-400 hover:bg-red-400/20">
+                Desligar <p className="text-xs">(docker compose down)</p>
+              </button>
+            </li>
+            <li>
+              <button className="m-2 rounded bg-orange-400/10 px-3 py-2 text-orange-400 hover:bg-orange-400/20">
+                Nova versão
+                <p className="text-xs">(docker compose up --build -d)</p>
+              </button>
+            </li>
+          </ul>
+          <h2 className="mt-8 text-xl">
+            Referência do que adicionar ao servidor:
+          </h2>
+          <button
+            type="submit"
+            className="m-2 rounded bg-blue-400/10 px-3 py-2 text-blue-400 hover:bg-blue-400/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+          >
+            Ver arquivos a alterar no servidor
+          </button>
         </>
       ) : (
         "Carregando..."
       )}
     </section>
+  );
+}
+
+function DomainLinkWithStatus({
+  domainName,
+  status,
+}: {
+  domainName: string;
+  status: number;
+}) {
+  return (
+    <Link
+      className="flex max-w-xs gap-4 rounded-xl p-2 shadow shadow-black/20 hover:shadow-black/80"
+      href={`https://${domainName}`}
+      target="_blank"
+    >
+      <span
+        className={cn("contents", {
+          "text-green-400": status >= 200 && status < 300,
+          "text-blue-400": status >= 300 && status < 400,
+          "text-yellow-400": status >= 400 && status < 500,
+          "text-purple-400": status >= 500,
+        })}
+      >
+        {status !== -1 && status}
+        <div className="my-auto h-2 w-2 rounded-full bg-current" />
+      </span>
+      {domainName}
+    </Link>
   );
 }

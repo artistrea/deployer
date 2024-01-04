@@ -12,7 +12,6 @@ import {
 } from "drizzle-orm/mysql-core";
 import { type AdapterAccount } from "next-auth/adapters";
 import { registerService } from "~/utils/registerService";
-import type { CreateDeploySchema } from "~/validations/createDeploy";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -32,8 +31,33 @@ export const deploys = mysqlTable("deploy", {
     .default(sql`CURRENT_TIMESTAMP`)
     .notNull(),
   domains: json("domains").$type<{ value: string }[]>().notNull().default([]),
-  services: json("services").$type<CreateDeploySchema["services"]>().notNull(),
 });
+
+export const deploysRelations = relations(deploys, ({ many }) => ({
+  files: many(deployTextFiles),
+}));
+
+export const deployTextFiles = mysqlTable("deployTextFiles", {
+  id: bigint("id", { mode: "number" }).notNull().primaryKey().autoincrement(),
+  deployId: bigint("deployId", { mode: "number" }).notNull(),
+  description: text("description").notNull(),
+  directory: varchar("directory", { length: 64 }).notNull(),
+  name: varchar("name", { length: 32 }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+});
+
+export const deployTextFilesRelations = relations(
+  deployTextFiles,
+  ({ one }) => ({
+    deploy: one(deploys, {
+      fields: [deployTextFiles.deployId],
+      references: [deploys.id],
+    }),
+  }),
+);
 
 export const users = mysqlTable("user", {
   id: varchar("id", { length: 255 }).notNull().primaryKey(),
